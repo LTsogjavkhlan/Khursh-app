@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+/*
+  User-facing app: force elements visible.
+  This is scoped to .user-layout so the admin panel
+  (which uses AdminLayout, not this class) is unaffected
+  and Tailwind color/background classes work normally there.
+*/
+.user-layout,
+.user-layout * {
+  opacity: 1 !important;
+}
+
+/* Login page animations rely on GSAP controlling opacity, so exempt it */
+.login-page,
+.login-page * {
+  opacity: initial !important;
+}
+
+/* Animation for sliding up menu */
+@keyframes slide-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out forwards;
+}
