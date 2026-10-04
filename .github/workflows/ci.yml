@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  user-app:
+    name: User app lint & build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: user-app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: user-app/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+        env:
+          VITE_API_BASE_URL: http://localhost:5000
+
+  admin-app:
+    name: Admin app lint & build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: admin-app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: admin-app/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+        env:
+          VITE_API_BASE_URL: http://localhost:5000
+
+  backend:
+    name: Backend syntax check & tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - name: Syntax-check entrypoints
+        run: |
+          node --check server.js
+          node --check config/db.js
+          node --check config/cors.js
+          node --check middleware/validate.js
+          node --check middleware/rateLimit.js
+          node --check utils/logger.js
+          node --check validation/schemas.js
+      # End-to-end tests against an in-memory MongoDB (no external services)
+      - run: npm test
