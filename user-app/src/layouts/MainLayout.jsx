@@ -23,7 +23,7 @@ export default function MainLayout() {
     const [isScrolled, setIsScrolled] = useState(false)
     const location = useLocation()
     const pollRef = useRef(null)
-    const { colors } = useTheme()
+    const { colors, isDark } = useTheme()
     const { hasApartmentAccess } = useAuth()
 
     // Primary navigation items for the bottom bar. Payments and gate access are
@@ -333,7 +333,7 @@ export default function MainLayout() {
             }}>
                 <div style={styles.headerLogoContainer}>
                     <img
-                        src="/icons/hurshlogo.png"
+                        src={isDark ? '/icons/hurshlogowhite.png' : '/icons/hurshlogo.png'}
                         alt="Хөрш Logo"
                         style={{
                             width: '32px',
