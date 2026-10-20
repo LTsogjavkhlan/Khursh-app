@@ -1,23 +1,39 @@
 import { useState, useEffect, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
-import { gsap } from 'gsap'
 import { submitFeedback, fetchMyFeedback } from '../api/feedback'
 import { useAuth } from '../context/AuthContext.jsx'
-import { useTheme } from '../context/ThemeContext'
-import { ImagePlus, Check, AlertCircle } from 'lucide-react'
+import { useToast } from '../components/Toast'
+import PageHeader from '../components/ui/PageHeader'
+import SegmentedTabs from '../components/ui/SegmentedTabs'
+import Button, { FOCUS_RING } from '../components/ui/Button'
+import Card from '../components/ui/Card'
+import StatusPill from '../components/ui/StatusPill'
+import EmptyState from '../components/ui/EmptyState'
+import { SkeletonBlock } from '../components/ui/Skeleton'
+import { inputCls } from '../components/ui/Field'
 import { resizeImage } from '../utils/imageResize'
+import { fullDate } from '../utils/format'
+import { ImagePlus, X, MessageSquareWarning, Lightbulb, Wrench, MessageSquare, Send } from 'lucide-react'
 
 const MAX_IMAGES = 3
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024
 
-const STATUS_LABELS = { open: 'Нээлттэй', in_progress: 'Ажиллаж байна', resolved: 'Шийдэгдсэн' }
-const STATUS_COLORS = { open: { bg: '#fef3c7', color: '#92400e' }, in_progress: { bg: '#dbeafe', color: '#1e40af' }, resolved: { bg: '#d1fae5', color: '#065f46' } }
+const CATEGORIES = [
+    { id: 'Гомдол', icon: MessageSquareWarning, placeholder: 'Гомдлоо энд бичнэ үү…' },
+    { id: 'Шинэ санаа', icon: Lightbulb, placeholder: 'Саналаа энд бичнэ үү…' },
+    { id: 'Эвдрэл гэмтэл', icon: Wrench, placeholder: 'Эвдрэл гэмтлийн байршил, тайлбарыг бичнэ үү…' },
+]
+
+const STATUS = {
+    open: { label: 'Нээлттэй', tone: 'warning' },
+    in_progress: { label: 'Ажиллаж байна', tone: 'info' },
+    resolved: { label: 'Шийдэгдсэн', tone: 'success' },
+}
 
 export default function Feedback() {
     const { user } = useAuth()
     const location = useLocation()
-    const headerRef = useRef(null)
-    const formRef = useRef(null)
+    const toast = useToast()
 
     // If navigated here from a notification, open the history tab directly
     const [activeTab, setActiveTab] = useState(
@@ -28,14 +44,8 @@ export default function Feedback() {
     const [images, setImages] = useState([])
     const [preparingImages, setPreparingImages] = useState(false)
     const [submitting, setSubmitting] = useState(false)
-    const [toast, setToast] = useState(null) // { message, type: 'success' | 'error' }
     const [myFeedback, setMyFeedback] = useState([])
     const [loadingFeedback, setLoadingFeedback] = useState(false)
-
-    const showToast = (message, type = 'success') => {
-        setToast({ message, type })
-        setTimeout(() => setToast(null), 3500)
-    }
 
     const loadMyFeedback = async () => {
         setLoadingFeedback(true)
@@ -49,26 +59,6 @@ export default function Feedback() {
     useEffect(() => {
         if (activeTab === 'history') loadMyFeedback()
     }, [activeTab])
-
-    // Animation on component mount
-    useEffect(() => {
-        // Animate header
-        gsap.from(headerRef.current, {
-            y: -20,
-            opacity: 0,
-            duration: 0.5,
-            ease: "power2.out"
-        })
-
-        // Animate form
-        gsap.from(formRef.current, {
-            y: 20,
-            opacity: 0,
-            duration: 0.5,
-            delay: 0.2,
-            ease: "power1.out"
-        })
-    }, [])
 
     // Free preview URLs when the page unmounts
     const imagesRef = useRef(images)
@@ -84,7 +74,7 @@ export default function Feedback() {
 
         const room = MAX_IMAGES - images.length
         if (picked.length > room) {
-            showToast(`Хамгийн ихдээ ${MAX_IMAGES} зураг хавсаргах боломжтой`, 'error')
+            toast.show(`Хамгийн ихдээ ${MAX_IMAGES} зураг хавсаргах боломжтой`)
         }
 
         setPreparingImages(true)
@@ -93,7 +83,7 @@ export default function Feedback() {
             for (const original of picked.slice(0, Math.max(room, 0))) {
                 const file = await resizeImage(original)
                 if (file.size > MAX_IMAGE_BYTES) {
-                    showToast('Зураг тус бүр 5MB-аас ихгүй байх ёстой', 'error')
+                    toast.show('Зураг тус бүр 5MB-аас ихгүй байх ёстой')
                     continue
                 }
                 added.push({
@@ -108,14 +98,12 @@ export default function Feedback() {
         }
     }
 
-    // Remove an image
     const removeImage = (id) => {
         const img = images.find(i => i.id === id)
         if (img) URL.revokeObjectURL(img.preview)
         setImages(images.filter(i => i.id !== id))
     }
 
-    // Handle form submission
     const handleSubmit = async (e) => {
         e.preventDefault()
         setSubmitting(true)
@@ -132,331 +120,164 @@ export default function Feedback() {
             setFeedbackText('')
             images.forEach(img => URL.revokeObjectURL(img.preview))
             setImages([])
-            showToast('Таны санал амжилттай илгээгдлээ. Баярлалаа', 'success')
+            toast.show('Таны санал амжилттай илгээгдлээ. Баярлалаа!')
         } catch (err) {
             setSubmitting(false)
-            showToast(err.message || 'Санал илгээхэд алдаа гарлаа.', 'error')
+            toast.show(err.message || 'Санал илгээхэд алдаа гарлаа. Дахин оролдоно уу.')
         }
     }
 
-    const { colors } = useTheme()
-    const styles = {
-        container: { padding: '16px 0 80px' },
-        header: { marginBottom: '24px' },
-        headerTitle: { fontSize: '24px', fontWeight: 'bold', color: colors.text, marginBottom: '4px' },
-        headerSubtitle: { fontSize: '14px', color: colors.textMuted },
-        userInfoContainer: {
-            display: 'flex', alignItems: 'center', backgroundColor: colors.surface,
-            borderRadius: '12px', padding: '16px', marginBottom: '20px',
-            boxShadow: `0 2px 4px ${colors.shadow}`, border: `1px solid ${colors.border}`,
-        },
-        avatar: {
-            width: '50px', height: '50px', borderRadius: '50%',
-            backgroundColor: colors.surfaceAlt, display: 'flex', alignItems: 'center',
-            justifyContent: 'center', marginRight: '16px', color: colors.textSub,
-            fontSize: '20px', fontWeight: 'bold',
-        },
-        userName: { fontSize: '16px', fontWeight: '600', color: colors.text },
-        userType: { fontSize: '14px', color: colors.textMuted, marginTop: '2px' },
-        categoryTabs: {
-            display: 'flex', backgroundColor: colors.surface, borderRadius: '12px',
-            marginBottom: '16px', overflow: 'hidden',
-            boxShadow: `0 2px 4px ${colors.shadow}`, border: `1px solid ${colors.border}`,
-        },
-        categoryTab: {
-            flex: 1, padding: '12px 16px', textAlign: 'center', cursor: 'pointer',
-            fontSize: '14px', fontWeight: '500', transition: 'all 0.2s ease',
-            color: colors.textSub, backgroundColor: colors.surface, border: 'none',
-        },
-        activeTab: { backgroundColor: colors.brand, color: 'white' },
-        feedbackForm: {
-            backgroundColor: colors.surface, borderRadius: '12px', padding: '20px',
-            boxShadow: `0 2px 4px ${colors.shadow}`, border: `1px solid ${colors.border}`,
-            boxSizing: 'border-box',
-        },
-        textarea: {
-            width: '100%', minHeight: '200px', padding: '16px', borderRadius: '8px',
-            border: `1px solid ${colors.border}`, resize: 'vertical', fontSize: '16px',
-            marginBottom: '16px', fontFamily: 'inherit', boxSizing: 'border-box',
-            backgroundColor: colors.surfaceAlt, color: colors.text,
-        },
-        imageUploadContainer: { marginBottom: '20px' },
-        imageUploadLabel: {
-            display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px',
-            backgroundColor: colors.surfaceAlt, borderRadius: '8px', cursor: 'pointer',
-            width: 'fit-content', marginBottom: '12px',
-        },
-        imageUploadIcon: { width: '20px', height: '20px', color: colors.textSub },
-        imageUploadText: { fontSize: '14px', fontWeight: '500', color: colors.textSub },
-        imageInput: { display: 'none' },
-        imagesPreview: { display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '12px' },
-        imagePreviewContainer: {
-            position: 'relative',
-            width: '80px',
-            height: '80px',
-        },
-        imagePreview: {
-            width: '80px',
-            height: '80px',
-            objectFit: 'cover',
-            borderRadius: '8px',
-            border: '1px solid #E5E7EB',
-        },
-        removeImageButton: {
-            position: 'absolute',
-            top: '-8px',
-            right: '-8px',
-            width: '24px',
-            height: '24px',
-            borderRadius: '50%',
-            backgroundColor: '#EF4444',
-            color: 'white',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            border: 'none',
-            cursor: 'pointer',
-            fontSize: '14px',
-            fontWeight: 'bold',
-            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-        },
-        submitButton: {
-            width: '100%', padding: '14px', backgroundColor: colors.brand,
-            color: 'white', border: 'none', borderRadius: '8px', fontSize: '16px',
-            fontWeight: '500', cursor: 'pointer', transition: 'background-color 0.2s ease',
-        },
-        submitButtonDisabled: { backgroundColor: '#93C5FD', cursor: 'not-allowed' },
-        successMessage: {
-            padding: '16px',
-            backgroundColor: '#DCFCE7',
-            borderRadius: '8px',
-            color: '#166534',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            marginBottom: '16px',
-            fontSize: '14px',
-            fontWeight: '500',
-        },
-        successIcon: {
-            width: '20px',
-            height: '20px',
-        },
-    };
-
-    const displayName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email : 'Оршин суугч'
+    const category = CATEGORIES.find(c => c.id === selectedCategory) || CATEGORIES[0]
+    const full = images.length >= MAX_IMAGES
+    const pickerBlocked = full || preparingImages || submitting
+    const displayName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email : ''
 
     return (
-        <div style={styles.container}>
-            <header ref={headerRef} style={styles.header}>
-                <h1 style={styles.headerTitle}>Санал, гомдол</h1>
-                <p style={styles.headerSubtitle}>Голден Хилл сууц өмчлөгчдийн холбоонд санал гомдол илгээх</p>
-            </header>
+        <div className="pb-4 pt-2">
+            <PageHeader title="Санал, гомдол" description={`${user?.hoaName || 'СӨХ'}-д санал, гомдол илгээх`} />
 
-            {/* Main Tabs */}
-            <div style={{ display: 'flex', borderBottom: `1px solid ${colors.border}`, marginBottom: '20px' }}>
-                {[['submit', 'Илгээх'], ['history', 'Миний гомдлууд']].map(([tab, label]) => (
-                    <button key={tab} onClick={() => setActiveTab(tab)} style={{
-                        flex: 1, padding: '12px', fontSize: '15px', fontWeight: '500', border: 'none',
-                        cursor: 'pointer', background: 'none', borderBottom: activeTab === tab ? `2px solid ${colors.accent}` : '2px solid transparent',
-                        color: activeTab === tab ? colors.accent : colors.textMuted,
-                    }}>{label}</button>
-                ))}
-            </div>
+            <SegmentedTabs
+                label="Санал, гомдлын хэсэг"
+                value={activeTab}
+                onChange={setActiveTab}
+                className="mb-6"
+                tabs={[{ id: 'submit', label: 'Илгээх' }, { id: 'history', label: 'Миний гомдлууд' }]}
+            />
 
             {activeTab === 'history' ? (
-                <div>
+                <section aria-label="Миний гомдлууд">
                     {loadingFeedback ? (
-                        <p style={{ color: '#6b7280', fontSize: '14px', textAlign: 'center', padding: '20px' }}>Ачаалж байна...</p>
+                        <div className="space-y-3"><SkeletonBlock className="h-28 rounded-card" /><SkeletonBlock className="h-28 rounded-card" /></div>
                     ) : myFeedback.length === 0 ? (
-                        <p style={{ color: '#6b7280', fontSize: '14px', textAlign: 'center', padding: '20px' }}>Илгээсэн санал гомдол байхгүй.</p>
-                    ) : myFeedback.map(item => {
-                        const sc = STATUS_COLORS[item.status] || STATUS_COLORS.open
-                        return (
-                            <div key={item._id} style={{ backgroundColor: 'white', borderRadius: '12px', padding: '16px', marginBottom: '12px', border: '1px solid #e5e7eb', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                                    <h3 style={{ fontSize: '15px', fontWeight: '600', color: '#111827' }}>{item.title}</h3>
-                                    <span style={{ fontSize: '12px', padding: '3px 10px', borderRadius: '20px', backgroundColor: sc.bg, color: sc.color, whiteSpace: 'nowrap', marginLeft: '8px' }}>
-                                        {STATUS_LABELS[item.status] || item.status}
-                                    </span>
-                                </div>
-                                <p style={{ fontSize: '14px', color: '#4b5563', marginBottom: '8px' }}>{item.description}</p>
-                                {item.images?.length > 0 && (
-                                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
-                                        {item.images.map((img, i) => (
-                                            <a key={img.publicId || i} href={img.url} target="_blank" rel="noopener noreferrer">
-                                                <img
-                                                    src={img.thumbUrl || img.url}
-                                                    alt={`Хавсаргасан зураг ${i + 1}`}
-                                                    width={64}
-                                                    height={64}
-                                                    loading="lazy"
-                                                    style={{ width: '64px', height: '64px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e5e7eb', display: 'block' }}
-                                                />
-                                            </a>
-                                        ))}
-                                    </div>
-                                )}
-                                {item.adminResponse && (
-                                    <div style={{ marginTop: '10px', padding: '12px', backgroundColor: '#eff6ff', borderRadius: '8px', borderLeft: '3px solid #2563eb' }}>
-                                        <p style={{ fontSize: '12px', fontWeight: '600', color: '#2563eb', marginBottom: '4px' }}>СӨХ-ийн хариу:</p>
-                                        <p style={{ fontSize: '14px', color: '#1e40af' }}>{item.adminResponse}</p>
-                                    </div>
-                                )}
-                                <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '8px' }}>
-                                    {new Date(item.createdAt).toLocaleDateString('mn-MN')}
-                                </p>
-                            </div>
-                        )
-                    })}
-                </div>
+                        <Card><EmptyState icon={MessageSquare} title="Илгээсэн санал, гомдол алга" description="Илгээсэн санал, гомдол болон СӨХ-ийн хариу энд харагдана." className="py-6" /></Card>
+                    ) : (
+                        <ul className="space-y-3">
+                            {myFeedback.map(item => {
+                                const st = STATUS[item.status] || { label: item.status, tone: 'neutral' }
+                                return (
+                                    <li key={item._id}>
+                                        <Card>
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div className="min-w-0">
+                                                    <h3 className="text-[15px] font-semibold text-ink">{item.title}</h3>
+                                                    <p className="text-xs text-ink-muted">{fullDate(item.createdAt)}</p>
+                                                </div>
+                                                <StatusPill tone={st.tone}>{st.label}</StatusPill>
+                                            </div>
+                                            <p className="mt-2.5 whitespace-pre-line text-sm text-ink-secondary">{item.description}</p>
+                                            {item.images?.length > 0 && (
+                                                <div className="mt-3 flex flex-wrap gap-2">
+                                                    {item.images.map((img, i) => (
+                                                        <a key={img.publicId || i} href={img.url} target="_blank" rel="noopener noreferrer" className={`block overflow-hidden rounded-xl border border-line ${FOCUS_RING}`}>
+                                                            <img src={img.thumbUrl || img.url} alt={`Хавсаргасан зураг ${i + 1}`} width={64} height={64} loading="lazy" className="h-16 w-16 object-cover" />
+                                                        </a>
+                                                    ))}
+                                                </div>
+                                            )}
+                                            {item.adminResponse && (
+                                                <div className="mt-3 rounded-control border-l-[3px] border-brand-text bg-brand-soft p-3">
+                                                    <p className="mb-1 text-xs font-semibold text-brand-text">СӨХ-ийн хариу</p>
+                                                    <p className="text-sm text-ink">{item.adminResponse}</p>
+                                                </div>
+                                            )}
+                                        </Card>
+                                    </li>
+                                )
+                            })}
+                        </ul>
+                    )}
+                </section>
             ) : (
-            <>
-            <div ref={formRef}>
-                {/* User Info */}
-                <div style={styles.userInfoContainer}>
-                    <div style={styles.avatar}>
-                        {displayName.split(' ').map(word => word[0]).join('')}
-                    </div>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    {/* Category */}
+                    <fieldset>
+                        <legend className="mb-2 text-[13px] font-medium text-ink-secondary">Төрөл</legend>
+                        <div className="grid grid-cols-3 gap-2">
+                            {CATEGORIES.map(({ id, icon: CatIcon }) => {
+                                const Icon = CatIcon
+                                const active = selectedCategory === id
+                                return (
+                                    <label key={id} className={`flex cursor-pointer flex-col items-center gap-2 rounded-card border px-2 py-3.5 text-center transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand-text ${
+                                        active ? 'border-brand-text bg-brand-soft' : 'border-line bg-surface hover:bg-surface-muted'
+                                    }`}>
+                                        <input type="radio" name="category" value={id} checked={active} onChange={() => setSelectedCategory(id)} className="sr-only" />
+                                        <span className={`flex h-10 w-10 items-center justify-center rounded-full ${active ? 'bg-surface text-brand-text' : 'bg-surface-muted text-ink-secondary'}`}>
+                                            <Icon size={20} aria-hidden="true" />
+                                        </span>
+                                        <span className={`text-[13px] font-semibold leading-tight ${active ? 'text-brand-text' : 'text-ink-secondary'}`}>{id}</span>
+                                    </label>
+                                )
+                            })}
+                        </div>
+                    </fieldset>
+
+                    {/* Description */}
                     <div>
-                        <h3 style={styles.userName}>{displayName}</h3>
-                        <p style={styles.userType}>Оршин суугч</p>
-                    </div>
-                </div>
-
-                {/* Category Tabs */}
-                <div style={styles.categoryTabs}>
-                    {['Гомдол', 'Шинэ санаа', 'Эвдрэл гэмтэл'].map(category => (
-                        <button
-                            key={category}
-                            style={{
-                                ...styles.categoryTab,
-                                ...(selectedCategory === category ? styles.activeTab : {})
-                            }}
-                            onClick={() => setSelectedCategory(category)}
-                        >
-                            {category}
-                        </button>
-                    ))}
-                </div>
-
-                {/* Feedback Form */}
-                <form style={styles.feedbackForm} onSubmit={handleSubmit}>
-                    <div style={{
-                        border: '1px solid #D1D5DB',
-                        borderRadius: '8px',
-                        overflow: 'hidden',
-                        marginBottom: '16px'
-                    }}>
+                        <label htmlFor="feedback-text" className="mb-1.5 block text-[13px] font-medium text-ink-secondary">Тайлбар</label>
                         <textarea
-                            style={{
-                                ...styles.textarea,
-                                border: 'none',
-                                borderRadius: 0,
-                                marginBottom: 0,
-                                width: '100%',
-                                display: 'block'
-                            }}
-                            placeholder={`${selectedCategory === 'Гомдол' ? 'Таны гомдлоо' : selectedCategory === 'Шинэ санаа' ? 'Таны саналаа' : 'Эвдрэл гэмтлийн тайлбарыг'} энд бичнэ үү...`}
+                            id="feedback-text"
+                            name="description"
+                            className={`${inputCls} min-h-40 resize-y leading-relaxed`}
+                            placeholder={category.placeholder}
                             value={feedbackText}
                             onChange={e => setFeedbackText(e.target.value)}
                             required
-                        ></textarea>
+                        />
                     </div>
 
-                    {/* Image Upload Section */}
-                    <div style={styles.imageUploadContainer}>
-                        {(() => {
-                            const full = images.length >= MAX_IMAGES
-                            const blocked = full || preparingImages || submitting
-                            return (
+                    {/* Photos */}
+                    <div>
+                        <div className="mb-2 flex items-center justify-between">
+                            <span className="text-[13px] font-medium text-ink-secondary">Зураг (заавал биш)</span>
+                            <span className="text-xs tabular-nums text-ink-muted">{images.length}/{MAX_IMAGES}</span>
+                        </div>
+                        <div className="flex flex-wrap gap-2.5">
+                            {images.map(img => (
+                                <div key={img.id} className="relative h-20 w-20">
+                                    <img src={img.preview} alt="Хавсаргах зураг" className="h-20 w-20 rounded-xl border border-line object-cover" />
+                                    <button
+                                        type="button"
+                                        onClick={() => removeImage(img.id)}
+                                        disabled={submitting}
+                                        aria-label="Зураг хасах"
+                                        className={`absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-ink text-surface shadow-card ${FOCUS_RING}`}
+                                    >
+                                        <X size={14} strokeWidth={2.6} aria-hidden="true" />
+                                    </button>
+                                </div>
+                            ))}
+                            {!full && (
                                 <label
-                                    style={{ ...styles.imageUploadLabel, ...(blocked ? { cursor: 'not-allowed', color: colors.textMuted } : {}) }}
                                     htmlFor="image-upload"
+                                    className={`flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-xl border border-dashed text-[11px] font-medium has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand-text ${
+                                        pickerBlocked ? 'cursor-not-allowed border-line text-ink-muted' : 'cursor-pointer border-line-strong/60 text-ink-secondary hover:bg-surface-muted'
+                                    }`}
                                 >
-                                    <ImagePlus style={styles.imageUploadIcon} />
-                                    <span style={styles.imageUploadText}>
-                                        {preparingImages ? 'Зураг бэлдэж байна…' : full ? 'Зургийн дээд хязгаарт хүрсэн' : 'Зураг нэмэх'}
-                                        {' '}({images.length}/{MAX_IMAGES})
-                                    </span>
+                                    <ImagePlus size={20} aria-hidden="true" />
+                                    {preparingImages ? 'Бэлдэж…' : 'Нэмэх'}
                                 </label>
-                            )
-                        })()}
+                            )}
+                        </div>
                         <input
                             type="file"
                             id="image-upload"
-                            style={styles.imageInput}
+                            className="sr-only"
                             accept="image/*"
                             multiple
-                            disabled={images.length >= MAX_IMAGES || preparingImages || submitting}
+                            disabled={pickerBlocked}
                             onChange={handleImageUpload}
                         />
-
-                        {/* Image Previews */}
-                        {images.length > 0 && (
-                            <div style={styles.imagesPreview}>
-                                {images.map(img => (
-                                    <div key={img.id} style={styles.imagePreviewContainer}>
-                                        <img src={img.preview} alt="Хавсаргах зураг" style={styles.imagePreview} />
-                                        <button
-                                            type="button"
-                                            style={styles.removeImageButton}
-                                            onClick={() => removeImage(img.id)}
-                                            disabled={submitting}
-                                            aria-label="Зураг хасах"
-                                        >
-                                            ×
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
                     </div>
 
-                    {/* Submit Button */}
-                    <button
-                        type="submit"
-                        style={{
-                            ...styles.submitButton,
-                            ...(submitting ? styles.submitButtonDisabled : {})
-                        }}
-                        disabled={submitting || preparingImages || !feedbackText.trim()}
-                    >
-                        {submitting ? (images.length ? 'Зураг илгээж байна…' : 'Илгээж байна…') : 'Илгээх'}
-                    </button>
+                    <div>
+                        <Button type="submit" fullWidth loading={submitting} disabled={preparingImages || !feedbackText.trim()}>
+                            {!submitting && <Send size={17} aria-hidden="true" />}
+                            {submitting ? (images.length ? 'Зураг илгээж байна…' : 'Илгээж байна…') : 'Илгээх'}
+                        </Button>
+                        {displayName && <p className="mt-2 text-center text-xs text-ink-muted">Илгээгч: {displayName}</p>}
+                    </div>
                 </form>
-            </div>
-            </>
-            )}
-
-            {/* Toast notification */}
-            {toast && (
-                <div style={{
-                    position: 'fixed',
-                    bottom: '88px',
-                    left: '16px',
-                    right: '16px',
-                    zIndex: 9999,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    padding: '14px 16px',
-                    borderRadius: '12px',
-                    boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-                    backgroundColor: toast.type === 'success' ? '#166534' : '#991b1b',
-                    color: 'white',
-                    fontSize: '15px',
-                    fontWeight: '500',
-                    animation: 'slide-up 0.3s ease-out',
-                }}>
-                    {toast.type === 'success' ? (
-                        <Check size={22} strokeWidth={2.5} style={{ flexShrink: 0 }} />
-                    ) : (
-                        <AlertCircle size={22} strokeWidth={2.5} style={{ flexShrink: 0 }} />
-                    )}
-                    <span>{toast.message}</span>
-                </div>
             )}
         </div>
     )
-} 
+}
