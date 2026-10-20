@@ -4,10 +4,17 @@ import { apiRequest } from '../api/client'
 import { useTheme } from '../context/ThemeContext'
 import { useAuth } from '../context/AuthContext'
 import ApartmentAccessGate from '../components/ApartmentAccessGate'
+import { useToast } from '../components/Toast'
+import { FEATURE_DISABLED_MESSAGE, isFeatureDisabledError, disabledFeatureStyle } from '../utils/features'
 import { DoorOpen, ShieldCheck, UserPlus, Plus, Trash2 } from 'lucide-react'
 
 export default function LicensePlate() {
-    const { hasApartmentAccess } = useAuth()
+    const { hasApartmentAccess, hasFeature, refreshUser } = useAuth()
+    const toast = useToast()
+    const gateEnabled = hasFeature('gateOpen')
+    const vehiclesEnabled = hasFeature('vehicleRegistration')
+    const guestsEnabled = hasFeature('guestPass')
+    const notifyDisabled = () => toast.show(FEATURE_DISABLED_MESSAGE)
     const headerRef = useRef(null)
     const gateButtonRef = useRef(null)
     const myCarsRef = useRef(null)
@@ -44,6 +51,9 @@ export default function LicensePlate() {
     }
 
     useEffect(() => { loadVehicles(); loadGuestPasses() }, [])
+
+    // Pick up any feature changes the platform admin made since the last load
+    useEffect(() => { refreshUser() }, [refreshUser])
 
     useEffect(() => {
         // Animate header
@@ -84,6 +94,7 @@ export default function LicensePlate() {
     }, [])
 
     const handleOpenGate = () => {
+        if (!gateEnabled) return notifyDisabled()
         if (gateAnimating) return
         setGateAnimating(true)
         gsap.to(gateButtonRef.current, { scale: 0.95, duration: 0.2, yoyo: true, repeat: 1 })
@@ -108,7 +119,14 @@ export default function LicensePlate() {
             setVehicleColor('')
             setShowAddVehicle(false)
         } catch (err) {
-            alert(err.message || 'Алдаа гарлаа.')
+            // The HOA switched the feature off after this page loaded
+            if (isFeatureDisabledError(err)) {
+                setShowAddVehicle(false)
+                notifyDisabled()
+                refreshUser()
+            } else {
+                alert(err.message || 'Алдаа гарлаа.')
+            }
         } finally {
             setAddingVehicle(false)
         }
@@ -138,7 +156,13 @@ export default function LicensePlate() {
             setLicensePlate('')
             setShowAddGuest(false)
         } catch (err) {
-            alert(err.message || 'Алдаа гарлаа.')
+            if (isFeatureDisabledError(err)) {
+                setShowAddGuest(false)
+                notifyDisabled()
+                refreshUser()
+            } else {
+                alert(err.message || 'Алдаа гарлаа.')
+            }
         }
     }
 
@@ -253,19 +277,23 @@ export default function LicensePlate() {
             </header>
 
             {/* Gate Button */}
+            {/* Stays tappable when the feature is off, so the tap can explain why */}
             <button
                 ref={gateButtonRef}
-                style={styles.gateButton}
+                style={gateEnabled ? styles.gateButton : { ...styles.gateButton, ...disabledFeatureStyle(colors) }}
                 onClick={handleOpenGate}
                 disabled={gateAnimating}
+                aria-disabled={!gateEnabled}
             >
-                <DoorOpen style={styles.gateIcon} />
-                <span style={styles.gateButtonText}>
-                    {gateAnimating ? 'Хаалт нээгдэж байна...' : 'Хаалт нээх'}
+                <DoorOpen style={gateEnabled ? styles.gateIcon : { ...styles.gateIcon, color: colors.textMuted }} />
+                <span style={gateEnabled ? styles.gateButtonText : { ...styles.gateButtonText, color: colors.textMuted }}>
+                    {gateAnimating ? 'Хаалт нээгдэж байна…' : 'Хаалт нээх'}
                 </span>
             </button>
 
-            <p style={styles.gateInfo}>Сүүлд нээсэн цаг: {formatLastOpened(lastOpened)}</p>
+            <p style={styles.gateInfo}>
+                {gateEnabled ? `Сүүлд нээсэн цаг: ${formatLastOpened(lastOpened)}` : FEATURE_DISABLED_MESSAGE}
+            </p>
 
             {/* My Cars Section */}
             <section ref={myCarsRef} style={styles.carsList}>
@@ -323,7 +351,11 @@ export default function LicensePlate() {
                         </form>
                     </div>
                 ) : (
-                    <button style={styles.addButton} onClick={() => setShowAddVehicle(true)}>
+                    <button
+                        style={vehiclesEnabled ? styles.addButton : { ...styles.addButton, ...disabledFeatureStyle(colors) }}
+                        onClick={() => (vehiclesEnabled ? setShowAddVehicle(true) : notifyDisabled())}
+                        aria-disabled={!vehiclesEnabled}
+                    >
                         <Plus style={styles.addIcon} />
                         <span style={styles.addButtonText}>Шинээр машин нэмэх</span>
                     </button>
@@ -417,8 +449,9 @@ export default function LicensePlate() {
                     </div>
                 ) : (
                     <button
-                        style={styles.addButton}
-                        onClick={() => setShowAddGuest(true)}
+                        style={guestsEnabled ? styles.addButton : { ...styles.addButton, ...disabledFeatureStyle(colors) }}
+                        onClick={() => (guestsEnabled ? setShowAddGuest(true) : notifyDisabled())}
+                        aria-disabled={!guestsEnabled}
                     >
                         <Plus style={styles.addIcon} />
                         <span style={styles.addButtonText}>Зочин нэмэх</span>

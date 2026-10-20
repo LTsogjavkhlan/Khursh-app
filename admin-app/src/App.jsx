@@ -18,6 +18,7 @@ const AdminRules = lazy(() => import('./pages/AdminRules.jsx'))
 const AdminProfile = lazy(() => import('./pages/AdminProfile.jsx'))
 const GroupChat = lazy(() => import('./pages/GroupChat.jsx'))
 const PlatformOrganizations = lazy(() => import('./pages/PlatformOrganizations.jsx'))
+const PlatformHoaManagement = lazy(() => import('./pages/PlatformHoaManagement.jsx'))
 
 function LoadingFallback() {
   return (
@@ -79,6 +80,7 @@ function App() {
                     <>
                       <Route index element={<Navigate to="organizations" replace />} />
                       <Route path="organizations" element={<PlatformOrganizations />} />
+                      <Route path="hoa-management" element={<PlatformHoaManagement />} />
                     </>
                   ) : (
                     <>

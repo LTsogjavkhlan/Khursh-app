@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { FEATURE_KEYS } from '../config/features.js'
 
 // ── Shared helpers ───────────────────────────────────────────────────────────
 // Always trim BEFORE min-length checks so whitespace-only values are rejected.
@@ -128,6 +129,11 @@ export const createHoaAdminSchema = z.object({
 export const promoteHoaAdminSchema = z.object({
     identifier: requiredStr('Имэйл, утас эсвэл ID оруулна уу', 254),
 })
+
+// Any subset of the known feature keys, each a boolean; unknown keys rejected
+export const updateHoaFeaturesSchema = z.object(
+    Object.fromEntries(FEATURE_KEYS.map(key => [key, z.boolean().optional()]))
+).strict().refine(obj => Object.keys(obj).length > 0, 'Өөрчлөх тохиргоо сонгоно уу')
 
 // ── Payments ─────────────────────────────────────────────────────────────────
 

@@ -6,6 +6,8 @@ import crypto from 'crypto'
 import { sendOtpEmail } from '../utils/mailer.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { findHoaIdByName } from '../utils/tenant.js'
+import Hoa from '../models/Hoa.js'
+import { resolveFeatures } from '../config/features.js'
 
 // The token carries identity only. Role and HOA scope are loaded from the
 // database on every request by `protect`, so they can never go stale.
@@ -114,7 +116,11 @@ export const getCurrentUser = asyncHandler(async (req, res) => {
     // Whether the user may use apartment features (owner or tenant of any unit)
     const hasApartmentAccess = (await ApartmentMember.countDocuments({ user: user._id })) > 0
 
-    res.json({ token, user, hasApartmentAccess })
+    // Which optional features the caller's HOA has (null when not in an HOA)
+    const hoa = req.userHoaId ? await Hoa.findById(req.userHoaId).select('features').lean() : null
+    const hoaFeatures = hoa ? resolveFeatures(hoa) : null
+
+    res.json({ token, user, hasApartmentAccess, hoaFeatures })
 })
 
 export const requestMembership = asyncHandler(async (req, res) => {

@@ -15,6 +15,8 @@ import {
     Phone,
 } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext.jsx'
+import { useToast } from '../components/Toast'
+import { FEATURE_DISABLED_MESSAGE } from '../utils/features'
 import { useAuth } from '../context/AuthContext.jsx'
 
 export default function MainLayout() {
@@ -24,7 +26,8 @@ export default function MainLayout() {
     const location = useLocation()
     const pollRef = useRef(null)
     const { colors, isDark } = useTheme()
-    const { hasApartmentAccess } = useAuth()
+    const { hasApartmentAccess, hasFeature } = useAuth()
+    const toast = useToast()
 
     // Primary navigation items for the bottom bar. Payments and gate access are
     // apartment-only features, so they only appear for users who own or rent an
@@ -44,7 +47,9 @@ export default function MainLayout() {
             {
                 name: 'Машин',
                 icon: Car,
-                path: '/license-plate'
+                path: '/license-plate',
+                // Greyed out only when the HOA has every feature on this page off
+                featureKeys: ['gateOpen', 'vehicleRegistration', 'guestPass'],
             },
         ] : []),
         {
@@ -385,6 +390,7 @@ export default function MainLayout() {
                     {primaryNavItems.map((item) => {
                         const active = item.path === '#more' ? isMoreMenuOpen :
                             (item.path === '/' ? location.pathname === '/' : location.pathname.startsWith(item.path))
+                        const unavailable = item.featureKeys?.every(key => !hasFeature(key))
 
                         return (
                             <NavLink
@@ -392,9 +398,15 @@ export default function MainLayout() {
                                 to={item.path === '#more' ? '#' : item.path}
                                 style={{
                                     ...styles.navItem,
-                                    ...(active ? styles.navItemActive : styles.navItemInactive)
+                                    ...(active ? styles.navItemActive : styles.navItemInactive),
+                                    ...(unavailable ? { color: colors.border } : {})
                                 }}
-                                onClick={item.path === '#more' ? toggleMoreMenu : undefined}
+                                aria-disabled={unavailable || undefined}
+                                onClick={
+                                    item.path === '#more' ? toggleMoreMenu
+                                    : unavailable ? (e) => { e.preventDefault(); toast.show(FEATURE_DISABLED_MESSAGE) }
+                                    : undefined
+                                }
                             >
                                 <item.icon size={24} style={{ marginBottom: '4px' }} />
                                 <span style={{

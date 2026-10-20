@@ -3,6 +3,9 @@ import Hoa from '../models/Hoa.js'
 import User from '../models/User.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { resolveUserByIdentifier, idEq } from '../utils/tenant.js'
+import Address from '../models/Address.js'
+import Vehicle from '../models/Vehicle.js'
+import { FEATURES, resolveFeatures } from '../config/features.js'
 
 // Public: list HOAs so residents can pick one when joining. This is the single
 // source of truth for the join dropdown (replaces the hardcoded frontend list).
@@ -141,4 +144,77 @@ export const demoteHoaAdmin = asyncHandler(async (req, res) => {
     target.role = 'user'
     await target.save()
     res.json({ message: 'Админ эрх хасагдлаа', user: publicAdmin(target) })
+})
+
+// ── Platform admin: HOA overview & features ─────────────────────────────────
+
+// GET /api/hoas/overview — every HOA with its feature switches and headline
+// stats, plus the feature catalog (labels/descriptions) for the admin UI.
+// Stats are computed with one grouped query per collection, not per HOA.
+export const getHoaOverview = asyncHandler(async (req, res) => {
+    const [hoas, userStats, apartmentStats, vehicleStats] = await Promise.all([
+        Hoa.find().sort({ name: 1 }).lean(),
+        User.aggregate([
+            { $match: { hoa: { $ne: null } } },
+            {
+                $group: {
+                    _id: '$hoa',
+                    residents: { $sum: { $cond: [{ $and: [{ $eq: ['$role', 'user'] }, { $eq: ['$membershipStatus', 'active'] }] }, 1, 0] } },
+                    pending: { $sum: { $cond: [{ $and: [{ $eq: ['$role', 'user'] }, { $eq: ['$membershipStatus', 'pending'] }] }, 1, 0] } },
+                    admins: { $sum: { $cond: [{ $eq: ['$role', 'admin'] }, 1, 0] } },
+                },
+            },
+        ]),
+        Address.aggregate([
+            { $match: { membershipStatus: 'active', hoa: { $ne: null } } },
+            { $group: { _id: '$hoa', apartments: { $sum: 1 } } },
+        ]),
+        Vehicle.aggregate([
+            { $lookup: { from: User.collection.name, localField: 'user', foreignField: '_id', as: 'owner' } },
+            { $unwind: '$owner' },
+            { $match: { 'owner.hoa': { $ne: null } } },
+            { $group: { _id: '$owner.hoa', vehicles: { $sum: 1 } } },
+        ]),
+    ])
+
+    const byHoa = new Map()
+    const merge = (rows) => rows.forEach(({ _id, ...counts }) => {
+        const key = String(_id)
+        byHoa.set(key, { ...(byHoa.get(key) || {}), ...counts })
+    })
+    merge(userStats); merge(apartmentStats); merge(vehicleStats)
+
+    res.json({
+        catalog: FEATURES,
+        hoas: hoas.map(h => {
+            const s = byHoa.get(String(h._id)) || {}
+            return {
+                _id: h._id,
+                name: h.name,
+                address: h.address,
+                createdAt: h.createdAt,
+                features: resolveFeatures(h),
+                stats: {
+                    residents: s.residents || 0,
+                    pending: s.pending || 0,
+                    admins: s.admins || 0,
+                    apartments: s.apartments || 0,
+                    vehicles: s.vehicles || 0,
+                },
+            }
+        }),
+    })
+})
+
+// PUT /api/hoas/:hoaId/features { gateOpen?, vehicleRegistration?, guestPass? }
+// Switch individual features on/off. Takes effect for residents immediately:
+// the API checks the HOA's current features on every guarded request.
+export const updateHoaFeatures = asyncHandler(async (req, res) => {
+    const hoa = await loadHoa(req, res)
+    if (!hoa) return
+
+    const $set = Object.fromEntries(Object.entries(req.body).map(([key, on]) => [`features.${key}`, on]))
+    const updated = await Hoa.findByIdAndUpdate(hoa._id, { $set }, { new: true }).lean()
+
+    res.json({ message: 'Тохиргоо хадгалагдлаа', hoa: { _id: updated._id, features: resolveFeatures(updated) } })
 })

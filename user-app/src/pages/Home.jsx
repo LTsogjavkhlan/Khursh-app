@@ -5,11 +5,21 @@ import { useAuth } from '../context/AuthContext'
 import { apiRequest } from '../api/client'
 import { useTheme } from '../context/ThemeContext'
 import { DoorOpen, UserPlus, CircleDollarSign, Phone, CircleUserRound, Calendar, ShieldCheck, MessageSquare, Car } from 'lucide-react'
+import { useToast } from '../components/Toast'
+import { FEATURE_DISABLED_MESSAGE, disabledFeatureStyle } from '../utils/features'
 
 export default function Home() {
     const welcomeRef = useRef(null)
     const sectionRefs = useRef([])
-    const { user } = useAuth()
+    const { user, hasFeature } = useAuth()
+    const toast = useToast()
+
+    // Shortcut links to features the HOA may have switched off: when off they
+    // stay tappable but explain why instead of navigating.
+    const featureLink = (key) => hasFeature(key) ? {} : {
+        onClick: (e) => { e.preventDefault(); toast.show(FEATURE_DISABLED_MESSAGE) },
+        'aria-disabled': true,
+    }
 
     const [announcements, setAnnouncements] = useState([])
     const [payments, setPayments] = useState([])
@@ -455,16 +465,18 @@ export default function Home() {
                 <div style={styles.actionScroll}>
                     <Link
                         to="/license-plate"
-                        style={{ ...styles.actionButton, ...styles.actionButtonBlue }}
+                        style={{ ...styles.actionButton, ...styles.actionButtonBlue, ...(hasFeature('gateOpen') ? {} : disabledFeatureStyle(colors)) }}
                         className="white-text"
+                        {...featureLink('gateOpen')}
                     >
                         <DoorOpen style={styles.actionIcon} />
                         <span style={styles.actionText}>Хаалт</span>
                     </Link>
                     <Link
                         to="/license-plate"
-                        style={{ ...styles.actionButton, ...styles.actionButtonGreen }}
+                        style={{ ...styles.actionButton, ...styles.actionButtonGreen, ...(hasFeature('guestPass') ? {} : disabledFeatureStyle(colors)) }}
                         className="white-text"
+                        {...featureLink('guestPass')}
                     >
                         <UserPlus style={styles.actionIcon} />
                         <span style={styles.actionText}>Зочин нэмэх</span>
@@ -628,7 +640,11 @@ export default function Home() {
                                 <span style={styles.parkingStatus}>{vehicle.isPrimary ? 'Үндсэн' : 'идэвхтэй'}</span>
                             </div>
                         ))}
-                        <Link to="/license-plate" style={styles.showAllButton}>
+                        <Link
+                            to="/license-plate"
+                            style={hasFeature('vehicleRegistration') ? styles.showAllButton : { ...styles.showAllButton, ...disabledFeatureStyle(colors) }}
+                            {...featureLink('vehicleRegistration')}
+                        >
                             Машин нэмэх
                         </Link>
                     </div>

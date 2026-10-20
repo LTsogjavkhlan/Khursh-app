@@ -11,7 +11,13 @@ const hoaSchema = new mongoose.Schema(
             unique: true,
             trim: true
         },
-        address: { type: String, default: '' }
+        address: { type: String, default: '' },
+        // Optional features a platform admin can switch on/off (config/features.js)
+        features: {
+            gateOpen:            { type: Boolean, default: true },
+            vehicleRegistration: { type: Boolean, default: true },
+            guestPass:           { type: Boolean, default: true }
+        }
     },
     { timestamps: true }
 )

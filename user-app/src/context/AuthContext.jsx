@@ -29,6 +29,17 @@ export function AuthProvider({ children }) {
     }
   })
 
+  // Which optional features the user's HOA has (gate button, plate
+  // registration, guest passes). null = unknown / not in an HOA.
+  const [hoaFeatures, setHoaFeatures] = useState(() => {
+    try {
+      const stored = localStorage.getItem('hoaFeatures')
+      return stored ? JSON.parse(stored) : null
+    } catch {
+      return null
+    }
+  })
+
   useEffect(() => {
     try {
       if (token) {
@@ -61,6 +72,15 @@ export function AuthProvider({ children }) {
     }
   }, [hasApartmentAccess])
 
+  useEffect(() => {
+    try {
+      if (hoaFeatures) localStorage.setItem('hoaFeatures', JSON.stringify(hoaFeatures))
+      else localStorage.removeItem('hoaFeatures')
+    } catch {
+      // ignore storage errors
+    }
+  }, [hoaFeatures])
+
   // Pull the latest user + a freshly-signed token from the server. This keeps
   // HOA-scoped content and apartment access in sync after membership changes
   // (e.g. a user just added as a tenant) without requiring a re-login.
@@ -70,6 +90,7 @@ export function AuthProvider({ children }) {
       if (data?.token) setToken(data.token)
       if (data?.user) setUser(data.user)
       setHasApartmentAccess(!!data?.hasApartmentAccess)
+      setHoaFeatures(data?.hoaFeatures ?? null)
       return data
     } catch {
       // ignore; interceptor handles 401s
@@ -95,6 +116,7 @@ export function AuthProvider({ children }) {
     setToken(null)
     setUser(null)
     setHasApartmentAccess(false)
+    setHoaFeatures(null)
     try {
       localStorage.removeItem('hasApartmentAccess')
     } catch {
@@ -102,10 +124,16 @@ export function AuthProvider({ children }) {
     }
   }
 
+  // A feature counts as available unless the HOA has explicitly switched it
+  // off, so nothing greys out while features are still loading.
+  const hasFeature = useCallback((key) => hoaFeatures?.[key] !== false, [hoaFeatures])
+
   const value = {
     token,
     user,
     hasApartmentAccess,
+    hoaFeatures,
+    hasFeature,
     isAuthenticated,
     completeLogin,
     logout,

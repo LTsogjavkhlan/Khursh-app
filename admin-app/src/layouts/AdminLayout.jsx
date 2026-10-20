@@ -15,6 +15,7 @@ import {
   Phone,
   FileText,
   Building2,
+  SlidersHorizontal,
   CircleUserRound,
   Menu,
   X,
@@ -42,6 +43,11 @@ const PLATFORM_NAV_ITEMS = [
     to: '/organizations',
     label: 'Байгууллагууд',
     icon: <Building2 className="w-5 h-5" strokeWidth={1.8} />,
+  },
+  {
+    to: '/hoa-management',
+    label: 'СӨХ удирдлага',
+    icon: <SlidersHorizontal className="w-5 h-5" strokeWidth={1.8} />,
   },
   PROFILE_ITEM,
 ]
