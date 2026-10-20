@@ -620,7 +620,7 @@ export default function Login() {
                                                 Код хүлээгдэхгүй байна уу? Дахин илгээх →
                                             </button>
                                             <div style={{ marginTop: '16px' }}>
-                                                <button type="submit" disabled={fpLoading || fpCode.length !== 4} style={{ ...styles.button, ...(fpLoading || fpCode.length !== 4 ? styles.loadingButton : styles.activeButton) }}>
+                                                <button type="submit" disabled={fpLoading || fpCode.length !== 6} style={{ ...styles.button, ...(fpLoading || fpCode.length !== 6 ? styles.loadingButton : styles.activeButton) }}>
                                                     {fpLoading ? 'Шалгаж байна...' : 'Кодыг баталгаажуулах'}
                                                 </button>
                                             </div>
