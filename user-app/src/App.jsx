@@ -16,7 +16,6 @@ const Profile = lazy(() => import('./pages/Profile'))
 const Contact = lazy(() => import('./pages/Contact'))
 const Rules = lazy(() => import('./pages/Rules'))
 const Feedback = lazy(() => import('./pages/Feedback'))
-const ElectricityBill = lazy(() => import('./pages/ElectricityBill'))
 const Announcements = lazy(() => import('./pages/Announcements'))
 const GroupChat = lazy(() => import('./pages/GroupChat'))
 
@@ -60,7 +59,8 @@ function App() {
                   <Route path="contact" element={<Contact />} />
                   <Route path="rules" element={<Rules />} />
                   <Route path="feedback" element={<Feedback />} />
-                  <Route path="electricity" element={<ElectricityBill />} />
+                  {/* Electricity bills live on the Payments page now */}
+                  <Route path="electricity" element={<Navigate to="/payments" replace />} />
                   <Route path="announcements" element={<Announcements />} />
                   <Route path="chat" element={<GroupChat />} />
                 </Route>
