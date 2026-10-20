@@ -92,8 +92,8 @@ export default function AdminRules() {
     <div className="space-y-6 max-w-3xl">
       <PageHeader title="Дүрэм журам" subtitle="Оршин суугчдад харагдах СӨХ-ийн дүрмийн бүлгүүд." />
 
-      <form onSubmit={handleSubmit} className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 space-y-3">
-        <h2 className="text-sm font-semibold text-slate-900">{editingId ? 'Дүрэм засах' : 'Шинэ дүрмийн бүлэг'}</h2>
+      <form onSubmit={handleSubmit} className="bg-surface border border-line rounded-2xl shadow-sm p-5 space-y-3">
+        <h2 className="text-sm font-semibold text-ink">{editingId ? 'Дүрэм засах' : 'Шинэ дүрмийн бүлэг'}</h2>
         <FormField label="Гарчиг">
           <input className={fieldInputCls} placeholder="Гарчиг" value={form.title} maxLength={200}
             onChange={e => setForm(f => ({ ...f, title: e.target.value }))} required />
@@ -110,7 +110,7 @@ export default function AdminRules() {
         </div>
       </form>
 
-      {error && <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded-xl bg-danger-bg border border-danger-bg px-4 py-3 text-sm text-danger-text">{error}</div>}
 
       {loading ? (
         <Skeleton.List rows={3} />
@@ -121,7 +121,7 @@ export default function AdminRules() {
           {rules.map(rule => (
             <Card key={rule._id} className="px-5 py-4">
               <div className="flex items-start justify-between gap-4">
-                <p className="text-sm font-semibold text-slate-900">{rule.title}</p>
+                <p className="text-sm font-semibold text-ink">{rule.title}</p>
                 <div className="flex gap-2 flex-shrink-0">
                   <Button variant="secondary" size="sm" onClick={() => startEdit(rule)}>Засах</Button>
                   <Button variant="danger" size="sm" disabled={busyId === rule._id} onClick={() => removeRule(rule._id)}>Устгах</Button>
@@ -130,7 +130,7 @@ export default function AdminRules() {
               {rule.items?.length > 0 && (
                 <ul className="mt-2 space-y-1 list-disc list-inside">
                   {rule.items.map((it, i) => (
-                    <li key={i} className="text-sm text-slate-600">{it}</li>
+                    <li key={i} className="text-sm text-ink-secondary">{it}</li>
                   ))}
                 </ul>
               )}

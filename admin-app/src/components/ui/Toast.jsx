@@ -25,12 +25,17 @@ export function ToastProvider({ children }) {
   return (
     <ToastContext.Provider value={api}>
       {children}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2 items-center pointer-events-none">
+      {/* Always mounted so screen readers announce new messages */}
+      <div
+        role="status"
+        aria-live="polite"
+        className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2 items-center pointer-events-none w-[calc(100%-2rem)] max-w-md"
+      >
         {toasts.map(t => (
           <div
             key={t.id}
-            className={`animate-[toastIn_150ms_ease-out] px-4 py-2.5 rounded-xl text-sm font-medium shadow-lg text-white pointer-events-auto ${
-              t.tone === 'error' ? 'bg-red-600' : 'bg-slate-900'
+            className={`animate-[toastIn_150ms_ease-out] px-4 py-3 rounded-control text-sm font-medium shadow-pop pointer-events-auto text-center ${
+              t.tone === 'error' ? 'bg-danger-text text-white' : 'bg-ink text-surface'
             }`}
           >
             {t.message}

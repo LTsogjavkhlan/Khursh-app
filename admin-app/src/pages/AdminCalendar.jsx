@@ -89,8 +89,8 @@ export default function AdminCalendar() {
     <div className="space-y-6 max-w-3xl">
       <PageHeader title="Хуанли" subtitle="СӨХ-ийн арга хэмжээ, уулзалтын мэдээлэл." />
 
-      <form onSubmit={handleSubmit} className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 space-y-3">
-        <h2 className="text-sm font-semibold text-slate-900">{editingId ? 'Арга хэмжээ засах' : 'Шинэ арга хэмжээ'}</h2>
+      <form onSubmit={handleSubmit} className="bg-surface border border-line rounded-2xl shadow-sm p-5 space-y-3">
+        <h2 className="text-sm font-semibold text-ink">{editingId ? 'Арга хэмжээ засах' : 'Шинэ арга хэмжээ'}</h2>
         <FormField label="Гарчиг">
           <input className={fieldInputCls} placeholder="Гарчиг" value={form.title} maxLength={200}
             onChange={e => setForm(f => ({ ...f, title: e.target.value }))} required />
@@ -121,7 +121,7 @@ export default function AdminCalendar() {
         </div>
       </form>
 
-      {error && <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded-xl bg-danger-bg border border-danger-bg px-4 py-3 text-sm text-danger-text">{error}</div>}
 
       {loading ? (
         <Skeleton.List rows={3} />
@@ -132,11 +132,11 @@ export default function AdminCalendar() {
           {events.map(ev => (
             <Card key={ev._id} className="px-5 py-4 flex items-start justify-between gap-4">
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-slate-900">{ev.title}</p>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-sm font-semibold text-ink">{ev.title}</p>
+                <p className="text-xs text-ink-muted mt-0.5">
                   {ev.date ? new Date(ev.date).toLocaleDateString('mn-MN') : ''} {ev.time ? `· ${ev.time}` : ''} {ev.location ? `· ${ev.location}` : ''}
                 </p>
-                {ev.description && <p className="text-sm text-slate-600 mt-1">{ev.description}</p>}
+                {ev.description && <p className="text-sm text-ink-secondary mt-1">{ev.description}</p>}
               </div>
               <div className="flex gap-2 flex-shrink-0">
                 <Button variant="secondary" size="sm" onClick={() => startEdit(ev)}>Засах</Button>

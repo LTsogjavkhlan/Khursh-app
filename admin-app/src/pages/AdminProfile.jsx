@@ -61,8 +61,8 @@ export default function AdminProfile() {
         subtitle={`${isPlatformAdmin ? 'Платформ админ' : 'СӨХ админ'} · ${user?.email}`}
       />
 
-      <form onSubmit={saveProfile} className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 space-y-3">
-        <h2 className="text-sm font-semibold text-slate-900">Хувийн мэдээлэл</h2>
+      <form onSubmit={saveProfile} className="bg-surface border border-line rounded-2xl shadow-sm p-5 space-y-3">
+        <h2 className="text-sm font-semibold text-ink">Хувийн мэдээлэл</h2>
         <div className="grid grid-cols-2 gap-3">
           <FormField label="Нэр">
             <input className={fieldInputCls} value={firstName} onChange={e => setFirstName(e.target.value)} />
@@ -83,8 +83,8 @@ export default function AdminProfile() {
         <Button type="submit" loading={savingProfile} className="w-full">Хадгалах</Button>
       </form>
 
-      <form onSubmit={savePassword} className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 space-y-3">
-        <h2 className="text-sm font-semibold text-slate-900">Нууц үг солих</h2>
+      <form onSubmit={savePassword} className="bg-surface border border-line rounded-2xl shadow-sm p-5 space-y-3">
+        <h2 className="text-sm font-semibold text-ink">Нууц үг солих</h2>
         <FormField label="Одоогийн нууц үг">
           <input type="password" className={fieldInputCls} value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} required />
         </FormField>
@@ -94,7 +94,7 @@ export default function AdminProfile() {
         <Button type="submit" variant="secondary" loading={savingPassword} className="w-full">Нууц үг солих</Button>
       </form>
 
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
+      <div className="bg-surface border border-line rounded-2xl shadow-sm p-5">
         <Button variant="dangerSolid" onClick={logout} className="w-full">
           <LogOut className="w-4 h-4" />
           Системээс гарах

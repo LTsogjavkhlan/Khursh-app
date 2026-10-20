@@ -104,8 +104,8 @@ export default function AdminContact() {
     <div className="space-y-6 max-w-3xl">
       <PageHeader title="Холбоо барих" subtitle="Оршин суугчдад харагдах үйлчилгээний холбоо барих мэдээлэл." />
 
-      <form onSubmit={handleSubmit} className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 space-y-3">
-        <h2 className="text-sm font-semibold text-slate-900">{editingId ? 'Үйлчилгээ засах' : 'Шинэ үйлчилгээ'}</h2>
+      <form onSubmit={handleSubmit} className="bg-surface border border-line rounded-2xl shadow-sm p-5 space-y-3">
+        <h2 className="text-sm font-semibold text-ink">{editingId ? 'Үйлчилгээ засах' : 'Шинэ үйлчилгээ'}</h2>
         <div className="grid grid-cols-2 gap-3">
           <FormField label="Нэр">
             <input className={fieldInputCls} placeholder="Нэр" value={form.name} maxLength={120}
@@ -139,7 +139,7 @@ export default function AdminContact() {
         </div>
       </form>
 
-      {error && <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded-xl bg-danger-bg border border-danger-bg px-4 py-3 text-sm text-danger-text">{error}</div>}
 
       {loading ? (
         <Skeleton.List rows={3} />
@@ -151,11 +151,11 @@ export default function AdminContact() {
             <Card key={item._id} className="px-5 py-4 flex items-start justify-between gap-4">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-semibold text-slate-900">{item.name}</p>
+                  <p className="text-sm font-semibold text-ink">{item.name}</p>
                   <Badge>{CATEGORY_LABEL[item.category] || item.category}</Badge>
                 </div>
-                <p className="text-xs text-slate-500 mt-0.5">{item.phone} {item.email ? `· ${item.email}` : ''}</p>
-                {item.description && <p className="text-sm text-slate-600 mt-1">{item.description}</p>}
+                <p className="text-xs text-ink-muted mt-0.5">{item.phone} {item.email ? `· ${item.email}` : ''}</p>
+                {item.description && <p className="text-sm text-ink-secondary mt-1">{item.description}</p>}
               </div>
               <div className="flex gap-2 flex-shrink-0">
                 <Button variant="secondary" size="sm" onClick={() => startEdit(item)}>Засах</Button>

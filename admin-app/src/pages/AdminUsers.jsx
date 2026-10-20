@@ -25,7 +25,7 @@ const PAYMENT_STATUS_META = {
 
 function Avatar({ user, large = false }) {
   return (
-    <div className={`${large ? 'w-14 h-14' : 'w-9 h-9'} rounded-full bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center text-[11px] font-bold text-slate-600 flex-shrink-0 leading-tight text-center`}>
+    <div className={`${large ? 'w-14 h-14' : 'w-9 h-9'} rounded-full bg-surface-muted flex items-center justify-center text-[11px] font-bold text-ink-secondary flex-shrink-0 leading-tight text-center`}>
       {user?.building
         ? <>{user.building}<br />{user.apartmentNumber || '?'}</>
         : (user?.apartmentNumber || (user?.firstName?.[0] || '?'))}
@@ -35,9 +35,9 @@ function Avatar({ user, large = false }) {
 
 function InfoRow({ label, value }) {
   return (
-    <div className="flex items-start justify-between gap-4 py-2 border-b border-slate-100 last:border-b-0">
-      <span className="text-xs font-medium text-slate-500 flex-shrink-0">{label}</span>
-      <span className="text-sm text-slate-800 text-right">{value ?? '—'}</span>
+    <div className="flex items-start justify-between gap-4 py-2 border-b border-line last:border-b-0">
+      <span className="text-xs font-medium text-ink-muted flex-shrink-0">{label}</span>
+      <span className="text-sm text-ink text-right">{value ?? '—'}</span>
     </div>
   )
 }
@@ -77,14 +77,14 @@ function UserDetailModal({ userId, onClose }) {
           <Skeleton.Line className="h-3 w-2/3" />
         </div>
       ) : error ? (
-        <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
+        <div className="rounded-xl bg-danger-bg border border-danger-bg px-4 py-3 text-sm text-danger-text">{error}</div>
       ) : !user ? null : (
         <div className="space-y-5">
           <div className="flex items-center gap-4">
             <Avatar user={user} large />
             <div className="min-w-0">
-              <p className="text-base font-semibold text-slate-900 truncate">{user.firstName} {user.lastName}</p>
-              <p className="text-sm text-slate-500 truncate">{user.email}</p>
+              <p className="text-base font-semibold text-ink truncate">{user.firstName} {user.lastName}</p>
+              <p className="text-sm text-ink-muted truncate">{user.email}</p>
             </div>
           </div>
 
@@ -94,7 +94,7 @@ function UserDetailModal({ userId, onClose }) {
           </div>
 
           <div>
-            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Холбоо барих</h3>
+            <h3 className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-1">Холбоо барих</h3>
             <InfoRow label="Утас" value={user.phone} />
             <InfoRow label="СӨХ" value={user.hoaName} />
             <InfoRow label="Хаяг" value={addressLine(user)} />
@@ -102,29 +102,29 @@ function UserDetailModal({ userId, onClose }) {
 
           {(user.utilityElectricity || user.utilityWaterHeat) && (
             <div>
-              <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Тоолуурын дугаар</h3>
+              <h3 className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-1">Тоолуурын дугаар</h3>
               <InfoRow label="Цахилгаан" value={user.utilityElectricity} />
               <InfoRow label="Ус, дулаан" value={user.utilityWaterHeat} />
             </div>
           )}
 
           <div>
-            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Тойм</h3>
+            <h3 className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-1">Тойм</h3>
             <InfoRow label="Санал, гомдол" value={`${data.feedbackCount ?? 0}`} />
             <InfoRow label="Бүртгүүлсэн" value={user.createdAt ? new Date(user.createdAt).toLocaleDateString('mn-MN') : '—'} />
           </div>
 
           <div>
-            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Сүүлийн төлбөрүүд</h3>
+            <h3 className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-2">Сүүлийн төлбөрүүд</h3>
             {!data.payments || data.payments.length === 0 ? (
-              <p className="text-sm text-slate-400">Төлбөрийн түүх алга.</p>
+              <p className="text-sm text-ink-muted">Төлбөрийн түүх алга.</p>
             ) : (
               <ul className="space-y-2">
                 {data.payments.map(p => {
                   const meta = PAYMENT_STATUS_META[p.status] || { label: p.status, tone: 'slate' }
                   return (
-                    <li key={p._id} className="flex items-center justify-between text-sm bg-slate-50 rounded-lg px-3 py-2">
-                      <span className="text-slate-700">{p.month || '—'} · {Number(p.amount).toLocaleString('mn-MN')}₮</span>
+                    <li key={p._id} className="flex items-center justify-between text-sm bg-surface-muted rounded-lg px-3 py-2">
+                      <span className="text-ink-secondary">{p.month || '—'} · {Number(p.amount).toLocaleString('mn-MN')}₮</span>
                       <Badge tone={meta.tone}>{meta.label}</Badge>
                     </li>
                   )
@@ -138,7 +138,7 @@ function UserDetailModal({ userId, onClose }) {
   )
 }
 
-const thCls = 'text-left text-xs font-semibold text-slate-500 uppercase tracking-wide px-4 py-3'
+const thCls = 'text-left text-xs font-semibold text-ink-muted uppercase tracking-wide px-4 py-3'
 const tdCls = 'px-4 py-3 align-middle'
 
 export default function AdminUsers() {
@@ -208,20 +208,20 @@ export default function AdminUsers() {
       <div className="flex gap-2">
         <button
           onClick={() => setTab('all')}
-          className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors duration-150 ${tab === 'all' ? 'bg-slate-900 text-white border-slate-900' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+          className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors duration-150 ${tab === 'all' ? 'bg-brand text-white border-brand' : 'border-line text-ink-secondary hover:bg-surface-muted'}`}
         >
           Бүх оршин суугч ({users.length})
         </button>
         <button
           onClick={() => setTab('pending')}
-          className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors duration-150 ${tab === 'pending' ? 'bg-slate-900 text-white border-slate-900' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+          className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors duration-150 ${tab === 'pending' ? 'bg-brand text-white border-brand' : 'border-line text-ink-secondary hover:bg-surface-muted'}`}
         >
           Хүлээгдэж буй хүсэлт ({pending.length})
         </button>
       </div>
 
       {error && (
-        <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
+        <div className="rounded-xl bg-danger-bg border border-danger-bg px-4 py-3 text-sm text-danger-text">{error}</div>
       )}
 
       {loading ? (
@@ -230,10 +230,10 @@ export default function AdminUsers() {
         users.length === 0 ? (
           <EmptyState title="Оршин суугч алга." />
         ) : (
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-x-auto">
+          <div className="bg-surface border border-line rounded-2xl shadow-sm overflow-x-auto">
             <table className="w-full min-w-[640px] border-collapse">
               <thead>
-                <tr className="border-b border-slate-100">
+                <tr className="border-b border-line">
                   <th className={thCls}>Хэрэглэгч</th>
                   <th className={thCls}>Хаяг</th>
                   <th className={thCls}>Эрх</th>
@@ -245,18 +245,18 @@ export default function AdminUsers() {
                   <tr
                     key={u._id}
                     onClick={() => setDetailUserId(u._id)}
-                    className="border-b border-slate-50 last:border-b-0 cursor-pointer hover:bg-slate-50 transition-colors duration-150"
+                    className="border-b border-line last:border-b-0 cursor-pointer hover:bg-surface-muted transition-colors duration-150"
                   >
                     <td className={tdCls}>
                       <div className="flex items-center gap-3 min-w-0">
                         <Avatar user={u} />
                         <div className="min-w-0">
-                          <p className="text-sm font-semibold text-slate-900 truncate">{u.firstName} {u.lastName}</p>
-                          <p className="text-xs text-slate-500 truncate">{u.email}</p>
+                          <p className="text-sm font-semibold text-ink truncate">{u.firstName} {u.lastName}</p>
+                          <p className="text-xs text-ink-muted truncate">{u.email}</p>
                         </div>
                       </div>
                     </td>
-                    <td className={`${tdCls} text-sm text-slate-600 whitespace-nowrap`}>{addressLine(u)}</td>
+                    <td className={`${tdCls} text-sm text-ink-secondary whitespace-nowrap`}>{addressLine(u)}</td>
                     <td className={tdCls}>
                       <Badge tone={u.role === 'admin' ? 'blue' : 'slate'}>{u.role === 'admin' ? 'Админ' : 'Хэрэглэгч'}</Badge>
                     </td>
@@ -279,10 +279,10 @@ export default function AdminUsers() {
       ) : pending.length === 0 ? (
         <EmptyState title="Хүлээгдэж буй хүсэлт алга." />
       ) : (
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-x-auto">
+        <div className="bg-surface border border-line rounded-2xl shadow-sm overflow-x-auto">
           <table className="w-full min-w-[560px] border-collapse">
             <thead>
-              <tr className="border-b border-slate-100">
+              <tr className="border-b border-line">
                 <th className={thCls}>Хэрэглэгч</th>
                 <th className={thCls}>Хаяг</th>
                 <th className={`${thCls} text-right`}>Үйлдэл</th>
@@ -293,18 +293,18 @@ export default function AdminUsers() {
                 <tr
                   key={u._id}
                   onClick={() => setDetailUserId(u._id)}
-                  className="border-b border-slate-50 last:border-b-0 cursor-pointer hover:bg-slate-50 transition-colors duration-150"
+                  className="border-b border-line last:border-b-0 cursor-pointer hover:bg-surface-muted transition-colors duration-150"
                 >
                   <td className={tdCls}>
                     <div className="flex items-center gap-3 min-w-0">
                       <Avatar user={u} />
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold text-slate-900 truncate">{u.firstName} {u.lastName}</p>
-                        <p className="text-xs text-slate-500 truncate">{u.email}</p>
+                        <p className="text-sm font-semibold text-ink truncate">{u.firstName} {u.lastName}</p>
+                        <p className="text-xs text-ink-muted truncate">{u.email}</p>
                       </div>
                     </div>
                   </td>
-                  <td className={`${tdCls} text-sm text-slate-600 whitespace-nowrap`}>{addressLine(u)}</td>
+                  <td className={`${tdCls} text-sm text-ink-secondary whitespace-nowrap`}>{addressLine(u)}</td>
                   <td className={`${tdCls} text-right`}>
                     <div className="flex gap-2 justify-end">
                       <Button

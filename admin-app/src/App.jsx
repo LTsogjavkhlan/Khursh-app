@@ -22,12 +22,10 @@ const PlatformHoaManagement = lazy(() => import('./pages/PlatformHoaManagement.j
 
 function LoadingFallback() {
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-      <div className="text-white text-center">
-        <div className="mb-4">
-          <Loader2 className="w-16 h-16 mx-auto animate-spin" />
-        </div>
-        <p className="text-xl font-bold">Loading...</p>
+    <div role="status" className="min-h-screen bg-canvas flex items-center justify-center">
+      <div className="text-center">
+        <Loader2 aria-hidden="true" className="w-8 h-8 mx-auto mb-3 text-brand animate-spin motion-reduce:animate-none" />
+        <p className="text-sm font-medium text-ink-muted">Ачаалж байна…</p>
       </div>
     </div>
   )
@@ -36,13 +34,15 @@ function LoadingFallback() {
 function NoAdminAccess() {
   const { logout } = useAuth()
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center px-6">
-      <div className="max-w-sm text-center">
-        <h1 className="text-xl font-bold text-white mb-2">Танд админ эрх байхгүй байна</h1>
-        <p className="text-sm text-slate-400 mb-6">Энэ систем зөвхөн СӨХ болон платформын админд зориулагдсан.</p>
+    <div className="min-h-screen bg-canvas flex items-center justify-center px-6">
+      <div className="max-w-sm w-full text-center bg-surface border border-line rounded-card shadow-card p-8">
+        <img src="/icons/hurshlogo-forest.png" alt="" width={40} height={40} className="w-10 h-10 mx-auto mb-4" />
+        <h1 className="text-xl font-semibold text-ink mb-2">Танд админ эрх байхгүй байна</h1>
+        <p className="text-sm text-ink-muted mb-6">Энэ систем зөвхөн СӨХ болон платформын админд зориулагдсан.</p>
         <button
+          type="button"
           onClick={logout}
-          className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-slate-700 hover:bg-slate-600 transition-colors"
+          className="h-10 px-5 rounded-control text-sm font-semibold text-on-brand bg-brand hover:bg-brand-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
         >
           Гарах
         </button>

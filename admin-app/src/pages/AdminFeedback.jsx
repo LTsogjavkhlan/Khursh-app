@@ -94,7 +94,7 @@ export default function AdminFeedback() {
       <PageHeader title="Санал, гомдол" subtitle="Оршин суугчдаас ирсэн санал гомдлыг эндээс харна." />
 
       {error && (
-        <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
+        <div className="rounded-xl bg-danger-bg border border-danger-bg px-4 py-3 text-sm text-danger-text">{error}</div>
       )}
 
       {loading ? (
@@ -111,14 +111,14 @@ export default function AdminFeedback() {
               <Card key={id} className="overflow-hidden">
                 <div className="px-5 pt-5 pb-4">
                   <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center text-[11px] font-bold text-slate-600 flex-shrink-0 leading-tight text-center">
+                    <div className="w-10 h-10 rounded-full bg-surface-muted flex items-center justify-center text-[11px] font-bold text-ink-secondary flex-shrink-0 leading-tight text-center">
                       {item.user?.building
                         ? <>{item.user.building}<br/>{item.user.apartmentNumber || '?'}</>
                         : (item.user?.apartmentNumber || '?')}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-sm font-semibold text-slate-900">
+                        <p className="text-sm font-semibold text-ink">
                           {[
                             item.user?.building    ? `${item.user.building}-р байр` : null,
                             item.user?.entrance    ? `${item.user.entrance}-р орц`  : null,
@@ -127,14 +127,14 @@ export default function AdminFeedback() {
                           ].filter(Boolean).join(', ') || '—'}
                         </p>
                         {(item.user?.firstName || item.user?.lastName) && (
-                          <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+                          <span className="text-xs text-ink-muted bg-surface-muted px-2 py-0.5 rounded-full">
                             {item.user.firstName} {item.user.lastName}
                           </span>
                         )}
                       </div>
                       <div className="mt-1 flex flex-wrap items-center gap-2">
                         <Badge tone={typeMeta.tone}>{typeMeta.label}</Badge>
-                        <span className="text-xs text-slate-400">
+                        <span className="text-xs text-ink-muted">
                           {item.createdAt ? new Date(item.createdAt).toLocaleDateString('mn-MN') : ''}
                         </span>
                       </div>
@@ -143,9 +143,9 @@ export default function AdminFeedback() {
                   </div>
 
                   {item.title && (
-                    <p className="mt-3 text-sm font-semibold text-slate-800 ml-14">{item.title}</p>
+                    <p className="mt-3 text-sm font-semibold text-ink ml-14">{item.title}</p>
                   )}
-                  <p className="mt-1 text-sm text-slate-700 leading-relaxed ml-14">{item.description}</p>
+                  <p className="mt-1 text-sm text-ink-secondary leading-relaxed ml-14">{item.description}</p>
 
                   {item.images?.length > 0 && (
                     <div className="mt-3 ml-14 flex flex-wrap gap-2">
@@ -155,7 +155,7 @@ export default function AdminFeedback() {
                           href={img.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="block rounded-xl overflow-hidden border border-slate-200 hover:border-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 transition-colors"
+                          className="block rounded-xl overflow-hidden border border-line hover:border-line-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand transition-colors"
                           aria-label={`Зураг ${i + 1}-г томоор харах`}
                         >
                           <img
@@ -172,14 +172,14 @@ export default function AdminFeedback() {
                   )}
 
                   {item.adminResponse && (
-                    <div className="mt-4 ml-14 p-3 bg-blue-50 rounded-xl border border-blue-100">
-                      <p className="text-xs font-semibold text-blue-600 mb-1">Админы хариу</p>
-                      <p className="text-sm text-blue-800">{item.adminResponse}</p>
+                    <div className="mt-4 ml-14 p-3 bg-brand-soft rounded-xl border border-brand-soft">
+                      <p className="text-xs font-semibold text-brand-text mb-1">Админы хариу</p>
+                      <p className="text-sm text-ink">{item.adminResponse}</p>
                     </div>
                   )}
                 </div>
 
-                <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+                <div className="px-5 py-3 bg-surface-muted border-t border-line flex flex-wrap items-center justify-between gap-3">
                   <div className="flex flex-wrap gap-1.5">
                     {STATUS_ACTIONS.map(a => (
                       <button
@@ -188,7 +188,7 @@ export default function AdminFeedback() {
                         disabled={updatingId === id}
                         onClick={() => updateStatus(id, a.status)}
                         className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors duration-150 disabled:opacity-50 ${
-                          item.status === a.status ? 'bg-slate-900 text-white border-slate-900' : 'border-slate-200 text-slate-600 hover:bg-white'
+                          item.status === a.status ? 'bg-brand text-white border-brand' : 'border-line text-ink-secondary hover:bg-surface'
                         }`}
                       >
                         {a.label}
@@ -203,7 +203,7 @@ export default function AdminFeedback() {
                 </div>
 
                 {expandedReply === id && (
-                  <div className="px-5 pb-5 pt-3 border-t border-slate-100 space-y-3">
+                  <div className="px-5 pb-5 pt-3 border-t border-line space-y-3">
                     <textarea
                       className={fieldInputCls}
                       rows={3}

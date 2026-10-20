@@ -17,14 +17,14 @@ const STATUS_META = {
   failed:     { label: 'Амжилтгүй', tone: 'red' },
 }
 
-const thCls = 'text-left text-xs font-semibold text-slate-500 uppercase tracking-wide px-4 py-3'
+const thCls = 'text-left text-xs font-semibold text-ink-muted uppercase tracking-wide px-4 py-3'
 const tdCls = 'px-4 py-3 align-middle'
 
 function InfoRow({ label, value }) {
   return (
-    <div className="flex items-start justify-between gap-4 py-2 border-b border-slate-100 last:border-b-0">
-      <span className="text-xs font-medium text-slate-500 flex-shrink-0">{label}</span>
-      <span className="text-sm text-slate-800 text-right">{value ?? '—'}</span>
+    <div className="flex items-start justify-between gap-4 py-2 border-b border-line last:border-b-0">
+      <span className="text-xs font-medium text-ink-muted flex-shrink-0">{label}</span>
+      <span className="text-sm text-ink text-right">{value ?? '—'}</span>
     </div>
   )
 }
@@ -39,12 +39,12 @@ function ResidentPaymentsModal({ user, payments, onClose }) {
     <Modal open onClose={onClose} title="Оршин суугчийн төлбөр">
       <div className="space-y-5">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center text-sm font-bold text-slate-600 flex-shrink-0">
+          <div className="w-12 h-12 rounded-full bg-surface-muted flex items-center justify-center text-sm font-bold text-ink-secondary flex-shrink-0">
             {user.firstName?.[0] || '?'}
           </div>
           <div className="min-w-0">
-            <p className="text-base font-semibold text-slate-900 truncate">{user.firstName} {user.lastName}</p>
-            <p className="text-sm text-slate-500 truncate">{user.email}</p>
+            <p className="text-base font-semibold text-ink truncate">{user.firstName} {user.lastName}</p>
+            <p className="text-sm text-ink-muted truncate">{user.email}</p>
           </div>
         </div>
 
@@ -54,29 +54,29 @@ function ResidentPaymentsModal({ user, payments, onClose }) {
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-slate-50 rounded-xl p-3 text-center">
-            <p className="text-lg font-bold text-slate-900">{history.length}</p>
-            <p className="text-xs text-slate-500 mt-0.5">Нийт нэхэмжлэл</p>
+          <div className="bg-surface-muted rounded-xl p-3 text-center">
+            <p className="text-lg font-bold text-ink">{history.length}</p>
+            <p className="text-xs text-ink-muted mt-0.5">Нийт нэхэмжлэл</p>
           </div>
-          <div className="bg-slate-50 rounded-xl p-3 text-center">
-            <p className="text-lg font-bold text-green-600">{paidTotal.toLocaleString('mn-MN')}₮</p>
-            <p className="text-xs text-slate-500 mt-0.5">Нийт төлсөн</p>
+          <div className="bg-surface-muted rounded-xl p-3 text-center">
+            <p className="text-lg font-bold text-success-text">{paidTotal.toLocaleString('mn-MN')}₮</p>
+            <p className="text-xs text-ink-muted mt-0.5">Нийт төлсөн</p>
           </div>
         </div>
 
         <div>
-          <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Төлбөрийн түүх</h3>
+          <h3 className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-2">Төлбөрийн түүх</h3>
           {history.length === 0 ? (
-            <p className="text-sm text-slate-400">Төлбөрийн түүх алга.</p>
+            <p className="text-sm text-ink-muted">Төлбөрийн түүх алга.</p>
           ) : (
             <ul className="space-y-2 max-h-72 overflow-y-auto pr-1">
               {history.map(p => {
                 const meta = STATUS_META[p.status] || { label: p.status, tone: 'slate' }
                 return (
-                  <li key={p._id} className="flex items-center justify-between text-sm bg-slate-50 rounded-lg px-3 py-2.5">
+                  <li key={p._id} className="flex items-center justify-between text-sm bg-surface-muted rounded-lg px-3 py-2.5">
                     <div>
-                      <p className="text-slate-800 font-medium">{p.month || '—'}</p>
-                      <p className="text-xs text-slate-500">{Number(p.amount).toLocaleString('mn-MN')}₮</p>
+                      <p className="text-ink font-medium">{p.month || '—'}</p>
+                      <p className="text-xs text-ink-muted">{Number(p.amount).toLocaleString('mn-MN')}₮</p>
                     </div>
                     <Badge tone={meta.tone}>{meta.label}</Badge>
                   </li>
@@ -195,7 +195,7 @@ export default function AdminPayments() {
     <div className="space-y-6 max-w-5xl">
       <PageHeader title="Төлбөр" subtitle="Сарын хураамжийн тохиргоо, нэхэмжлэл, төлбөрийн жагсаалт." />
 
-      {error && <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded-xl bg-danger-bg border border-danger-bg px-4 py-3 text-sm text-danger-text">{error}</div>}
 
       {loading ? (
         <div className="space-y-6">
@@ -208,8 +208,8 @@ export default function AdminPayments() {
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <form onSubmit={saveSettings} className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 space-y-3">
-              <h2 className="text-sm font-semibold text-slate-900">Сарын хураамжийн тохиргоо</h2>
+            <form onSubmit={saveSettings} className="bg-surface border border-line rounded-2xl shadow-sm p-5 space-y-3">
+              <h2 className="text-sm font-semibold text-ink">Сарын хураамжийн тохиргоо</h2>
               <FormField label="Сарын хураамж (₮)">
                 <input type="number" min={0} className={fieldInputCls} value={settings.monthlyFee}
                   onChange={e => setSettings(s => ({ ...s, monthlyFee: Number(e.target.value) }))} />
@@ -225,9 +225,9 @@ export default function AdminPayments() {
               <Button type="submit" loading={savingSettings} className="w-full">Хадгалах</Button>
             </form>
 
-            <form onSubmit={generateBills} className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 space-y-3">
-              <h2 className="text-sm font-semibold text-slate-900">Сарын нэхэмжлэл үүсгэх</h2>
-              <p className="text-xs text-slate-500">Тухайн сарын нэхэмжлэлгүй бүх оршин суугчид шинээр үүсгэнэ.</p>
+            <form onSubmit={generateBills} className="bg-surface border border-line rounded-2xl shadow-sm p-5 space-y-3">
+              <h2 className="text-sm font-semibold text-ink">Сарын нэхэмжлэл үүсгэх</h2>
+              <p className="text-xs text-ink-muted">Тухайн сарын нэхэмжлэлгүй бүх оршин суугчид шинээр үүсгэнэ.</p>
               <FormField label="Сар (ЖЖЖЖ-СС)">
                 <input type="month" className={fieldInputCls} value={genMonth} onChange={e => setGenMonth(e.target.value)} required />
               </FormField>
@@ -238,17 +238,17 @@ export default function AdminPayments() {
           </div>
 
           <div className="grid grid-cols-3 gap-3">
-            <div className="bg-white border border-slate-200 rounded-2xl p-4 text-center">
-              <p className="text-xl font-bold text-slate-900">{stats.total}</p>
-              <p className="text-xs text-slate-500 mt-0.5">Нийт</p>
+            <div className="bg-surface border border-line rounded-2xl p-4 text-center">
+              <p className="text-xl font-bold text-ink">{stats.total}</p>
+              <p className="text-xs text-ink-muted mt-0.5">Нийт</p>
             </div>
-            <div className="bg-white border border-slate-200 rounded-2xl p-4 text-center">
-              <p className="text-xl font-bold text-green-600">{stats.completed}</p>
-              <p className="text-xs text-slate-500 mt-0.5">Төлөгдсөн</p>
+            <div className="bg-surface border border-line rounded-2xl p-4 text-center">
+              <p className="text-xl font-bold text-success-text">{stats.completed}</p>
+              <p className="text-xs text-ink-muted mt-0.5">Төлөгдсөн</p>
             </div>
-            <div className="bg-white border border-slate-200 rounded-2xl p-4 text-center">
-              <p className="text-xl font-bold text-yellow-600">{stats.pending}</p>
-              <p className="text-xs text-slate-500 mt-0.5">Хүлээгдэж буй</p>
+            <div className="bg-surface border border-line rounded-2xl p-4 text-center">
+              <p className="text-xl font-bold text-warning-text">{stats.pending}</p>
+              <p className="text-xs text-ink-muted mt-0.5">Хүлээгдэж буй</p>
             </div>
           </div>
 
@@ -257,7 +257,7 @@ export default function AdminPayments() {
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors duration-150 ${filter === f ? 'bg-slate-900 text-white border-slate-900' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors duration-150 ${filter === f ? 'bg-brand text-white border-brand' : 'border-line text-ink-secondary hover:bg-surface-muted'}`}
               >
                 {f === 'all' ? 'Бүгд' : STATUS_META[f]?.label || f}
               </button>
@@ -267,10 +267,10 @@ export default function AdminPayments() {
           {filtered.length === 0 ? (
             <EmptyState title="Төлбөр алга." />
           ) : (
-            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-x-auto">
+            <div className="bg-surface border border-line rounded-2xl shadow-sm overflow-x-auto">
               <table className="w-full min-w-[720px] border-collapse">
                 <thead>
-                  <tr className="border-b border-slate-100">
+                  <tr className="border-b border-line">
                     <th className={thCls}>Оршин суугч</th>
                     <th className={thCls}>Сар</th>
                     <th className={thCls}>Дүн</th>
@@ -285,14 +285,14 @@ export default function AdminPayments() {
                       <tr
                         key={p._id}
                         onClick={() => p.user && setDetailUser(p.user)}
-                        className={`border-b border-slate-50 last:border-b-0 hover:bg-slate-50 transition-colors duration-150 ${p.user ? 'cursor-pointer' : ''}`}
+                        className={`border-b border-line last:border-b-0 hover:bg-surface-muted transition-colors duration-150 ${p.user ? 'cursor-pointer' : ''}`}
                       >
                         <td className={tdCls}>
-                          <p className="text-sm font-medium text-slate-900">{p.user?.firstName} {p.user?.lastName}</p>
-                          <p className="text-xs text-slate-500">{p.user?.building ? `${p.user.building}-${p.user.apartmentNumber || ''}` : '—'}</p>
+                          <p className="text-sm font-medium text-ink">{p.user?.firstName} {p.user?.lastName}</p>
+                          <p className="text-xs text-ink-muted">{p.user?.building ? `${p.user.building}-${p.user.apartmentNumber || ''}` : '—'}</p>
                         </td>
-                        <td className={`${tdCls} text-sm text-slate-600 whitespace-nowrap`}>{p.month || '—'}</td>
-                        <td className={`${tdCls} text-sm text-slate-900 font-medium whitespace-nowrap`}>{Number(p.amount).toLocaleString('mn-MN')}₮</td>
+                        <td className={`${tdCls} text-sm text-ink-secondary whitespace-nowrap`}>{p.month || '—'}</td>
+                        <td className={`${tdCls} text-sm text-ink font-medium whitespace-nowrap`}>{Number(p.amount).toLocaleString('mn-MN')}₮</td>
                         <td className={tdCls}><Badge tone={meta.tone}>{meta.label}</Badge></td>
                         <td className={`${tdCls} text-right`}>
                           <div className="flex gap-2 justify-end">

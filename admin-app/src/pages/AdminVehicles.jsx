@@ -15,7 +15,7 @@ function addressOf(user) {
   ].filter(Boolean).join(', ') || '—'
 }
 
-const thCls = 'text-left text-xs font-semibold text-slate-500 uppercase tracking-wide px-4 py-3'
+const thCls = 'text-left text-xs font-semibold text-ink-muted uppercase tracking-wide px-4 py-3'
 const tdCls = 'px-4 py-3 align-middle'
 
 export default function AdminVehicles() {
@@ -80,16 +80,16 @@ export default function AdminVehicles() {
 
       <div className="flex gap-2">
         <button onClick={() => setTab('vehicles')}
-          className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors duration-150 ${tab === 'vehicles' ? 'bg-slate-900 text-white border-slate-900' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+          className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors duration-150 ${tab === 'vehicles' ? 'bg-brand text-white border-brand' : 'border-line text-ink-secondary hover:bg-surface-muted'}`}>
           Машин ({vehicles.length})
         </button>
         <button onClick={() => setTab('passes')}
-          className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors duration-150 ${tab === 'passes' ? 'bg-slate-900 text-white border-slate-900' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+          className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors duration-150 ${tab === 'passes' ? 'bg-brand text-white border-brand' : 'border-line text-ink-secondary hover:bg-surface-muted'}`}>
           Зочны зөвшөөрөл ({passes.length})
         </button>
       </div>
 
-      {error && <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded-xl bg-danger-bg border border-danger-bg px-4 py-3 text-sm text-danger-text">{error}</div>}
 
       {loading ? (
         <Skeleton.List rows={4} />
@@ -97,10 +97,10 @@ export default function AdminVehicles() {
         vehicles.length === 0 ? (
           <EmptyState title="Бүртгэлтэй машин алга." />
         ) : (
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-x-auto">
+          <div className="bg-surface border border-line rounded-2xl shadow-sm overflow-x-auto">
             <table className="w-full min-w-[640px] border-collapse">
               <thead>
-                <tr className="border-b border-slate-100">
+                <tr className="border-b border-line">
                   <th className={thCls}>Улсын дугаар</th>
                   <th className={thCls}>Марк</th>
                   <th className={thCls}>Эзэмшигч</th>
@@ -109,15 +109,15 @@ export default function AdminVehicles() {
               </thead>
               <tbody>
                 {vehicles.map(v => (
-                  <tr key={v._id} className="border-b border-slate-50 last:border-b-0 hover:bg-slate-50 transition-colors duration-150">
+                  <tr key={v._id} className="border-b border-line last:border-b-0 hover:bg-surface-muted transition-colors duration-150">
                     <td className={tdCls}>
-                      <span className="text-sm font-semibold text-slate-900">{v.plate}</span>
-                      {v.isPrimary && <span className="text-[10px] text-blue-600 font-medium ml-1.5">үндсэн</span>}
+                      <span className="text-sm font-semibold text-ink">{v.plate}</span>
+                      {v.isPrimary && <span className="text-[10px] text-brand-text font-medium ml-1.5">үндсэн</span>}
                     </td>
-                    <td className={`${tdCls} text-sm text-slate-600`}>{v.model} {v.color ? `· ${v.color}` : ''}</td>
+                    <td className={`${tdCls} text-sm text-ink-secondary`}>{v.model} {v.color ? `· ${v.color}` : ''}</td>
                     <td className={tdCls}>
-                      <p className="text-sm text-slate-700">{v.user?.firstName} {v.user?.lastName}</p>
-                      <p className="text-xs text-slate-400">{addressOf(v.user)}</p>
+                      <p className="text-sm text-ink-secondary">{v.user?.firstName} {v.user?.lastName}</p>
+                      <p className="text-xs text-ink-muted">{addressOf(v.user)}</p>
                     </td>
                     <td className={`${tdCls} text-right`}>
                       <Button variant="danger" size="sm" disabled={busyId === v._id} onClick={() => removeVehicle(v._id)}>
@@ -133,10 +133,10 @@ export default function AdminVehicles() {
       ) : passes.length === 0 ? (
         <EmptyState title="Идэвхтэй зочны зөвшөөрөл алга." />
       ) : (
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-x-auto">
+        <div className="bg-surface border border-line rounded-2xl shadow-sm overflow-x-auto">
           <table className="w-full min-w-[640px] border-collapse">
             <thead>
-              <tr className="border-b border-slate-100">
+              <tr className="border-b border-line">
                 <th className={thCls}>Улсын дугаар</th>
                 <th className={thCls}>Дуусах</th>
                 <th className={thCls}>Эзэмшигч</th>
@@ -145,12 +145,12 @@ export default function AdminVehicles() {
             </thead>
             <tbody>
               {passes.map(p => (
-                <tr key={p._id} className="border-b border-slate-50 last:border-b-0 hover:bg-slate-50 transition-colors duration-150">
-                  <td className={`${tdCls} text-sm font-semibold text-slate-900`}>{p.plate}</td>
-                  <td className={`${tdCls} text-sm text-slate-600 whitespace-nowrap`}>{p.expiresAt ? new Date(p.expiresAt).toLocaleString('mn-MN') : '—'}</td>
+                <tr key={p._id} className="border-b border-line last:border-b-0 hover:bg-surface-muted transition-colors duration-150">
+                  <td className={`${tdCls} text-sm font-semibold text-ink`}>{p.plate}</td>
+                  <td className={`${tdCls} text-sm text-ink-secondary whitespace-nowrap`}>{p.expiresAt ? new Date(p.expiresAt).toLocaleString('mn-MN') : '—'}</td>
                   <td className={tdCls}>
-                    <p className="text-sm text-slate-700">{p.user?.firstName} {p.user?.lastName}</p>
-                    <p className="text-xs text-slate-400">{addressOf(p.user)}</p>
+                    <p className="text-sm text-ink-secondary">{p.user?.firstName} {p.user?.lastName}</p>
+                    <p className="text-xs text-ink-muted">{addressOf(p.user)}</p>
                   </td>
                   <td className={`${tdCls} text-right`}>
                     <Button variant="danger" size="sm" disabled={busyId === p._id} onClick={() => removePass(p._id)}>

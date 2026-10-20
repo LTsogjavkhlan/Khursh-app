@@ -126,11 +126,11 @@ export default function GroupChat() {
     }
 
     return (
-        <div className="max-w-3xl h-[75vh] flex flex-col bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-            <div className="flex items-baseline justify-between px-5 py-4 border-b border-slate-100 flex-shrink-0">
-                <h1 className="text-lg font-bold text-slate-900">Чат</h1>
-                <span className={`text-xs font-medium flex items-center gap-1.5 ${connected ? 'text-green-600' : 'text-slate-400'}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-green-500' : 'bg-slate-300'}`} />
+        <div className="max-w-3xl h-[75vh] flex flex-col bg-surface border border-line rounded-2xl shadow-sm overflow-hidden">
+            <div className="flex items-baseline justify-between px-5 py-4 border-b border-line flex-shrink-0">
+                <h1 className="text-lg font-bold text-ink">Чат</h1>
+                <span className={`text-xs font-medium flex items-center gap-1.5 ${connected ? 'text-success-text' : 'text-ink-muted'}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-success-text' : 'bg-line-strong'}`} />
                     {connected ? 'Холбогдсон' : 'Холбогдож байна...'}
                 </span>
             </div>
@@ -141,16 +141,16 @@ export default function GroupChat() {
                         type="button"
                         onClick={loadOlder}
                         disabled={loadingOlder}
-                        className="self-center mb-2 text-xs font-medium text-blue-600 bg-slate-50 border border-slate-200 rounded-full px-3.5 py-1.5 hover:bg-slate-100 transition-colors duration-150 disabled:opacity-50"
+                        className="self-center mb-2 text-xs font-medium text-brand-text bg-surface-muted border border-line rounded-full px-3.5 py-1.5 hover:bg-surface-muted transition-colors duration-150 disabled:opacity-50"
                     >
                         {loadingOlder ? 'Ачаалж байна...' : 'Хуучин мессежүүдийг харах'}
                     </button>
                 )}
 
                 {loadingInitial ? (
-                    <div className="flex-1 flex items-center justify-center text-sm text-slate-400">Ачаалж байна...</div>
+                    <div className="flex-1 flex items-center justify-center text-sm text-ink-muted">Ачаалж байна...</div>
                 ) : messages.length === 0 ? (
-                    <div className="flex-1 flex items-center justify-center text-center text-sm text-slate-400 px-6">
+                    <div className="flex-1 flex items-center justify-center text-center text-sm text-ink-muted px-6">
                         Мессеж алга байна. Эхний мессежээ бичээрэй!
                     </div>
                 ) : (
@@ -165,11 +165,11 @@ export default function GroupChat() {
                         return (
                             <div key={msg.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
                                 <div className={`max-w-[78%] px-3.5 py-2.5 rounded-2xl ${
-                                    mine ? 'bg-blue-600 text-white rounded-br-md' : 'bg-slate-100 text-slate-800 rounded-bl-md'
+                                    mine ? 'bg-brand text-on-brand rounded-br-md' : 'bg-surface-muted text-ink rounded-bl-md'
                                 }`}>
-                                    {!mine && <p className="text-xs font-semibold text-blue-600 mb-0.5">{senderName}</p>}
+                                    {!mine && <p className="text-xs font-semibold text-brand-text mb-0.5">{senderName}</p>}
                                     <p className="text-sm leading-snug whitespace-pre-wrap break-words">{msg.content}</p>
-                                    <p className={`text-[10px] mt-1 text-right ${mine ? 'text-blue-100' : 'text-slate-400'}`}>{formatTime(msg.createdAt)}</p>
+                                    <p className={`text-[10px] mt-1 text-right ${mine ? 'text-white/75' : 'text-ink-muted'}`}>{formatTime(msg.createdAt)}</p>
                                 </div>
                             </div>
                         )
@@ -178,14 +178,14 @@ export default function GroupChat() {
                 <div ref={bottomRef} />
             </div>
 
-            <form onSubmit={handleSend} className="flex gap-2 px-4 py-3 border-t border-slate-100 flex-shrink-0">
+            <form onSubmit={handleSend} className="flex gap-2 px-4 py-3 border-t border-line flex-shrink-0">
                 <input
                     type="text"
                     value={input}
                     onChange={e => setInput(e.target.value)}
                     placeholder="Мессеж бичих..."
                     maxLength={2000}
-                    className="flex-1 rounded-full border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm outline-none transition-colors focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white"
+                    className="flex-1 rounded-full border border-line bg-surface-muted px-4 py-2.5 text-sm outline-none transition-colors focus:ring-2 focus:ring-brand focus:border-brand focus:bg-surface"
                 />
                 <Button type="submit" disabled={sending || !input.trim()}>
                     Илгээх

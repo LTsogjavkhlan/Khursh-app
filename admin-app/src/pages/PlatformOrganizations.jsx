@@ -100,18 +100,18 @@ function HoaAdminsModal({ hoa, onClose }) {
     <Modal open onClose={onClose} title={`${hoa.name} — Админууд`} maxWidth="max-w-lg">
       <div className="space-y-6">
         <div>
-          <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Одоогийн админууд</h3>
+          <h3 className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-2">Одоогийн админууд</h3>
           {loading ? (
             <Skeleton.List rows={2} />
           ) : admins.length === 0 ? (
-            <p className="text-sm text-slate-400">Энэ СӨХ-д админ бүртгэгдээгүй байна.</p>
+            <p className="text-sm text-ink-muted">Энэ СӨХ-д админ бүртгэгдээгүй байна.</p>
           ) : (
             <ul className="space-y-2">
               {admins.map(a => (
-                <li key={a._id} className="flex items-center justify-between gap-3 bg-slate-50 rounded-xl px-3.5 py-2.5">
+                <li key={a._id} className="flex items-center justify-between gap-3 bg-surface-muted rounded-xl px-3.5 py-2.5">
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-slate-900 truncate">{a.firstName} {a.lastName}</p>
-                    <p className="text-xs text-slate-500 truncate">{a.email}</p>
+                    <p className="text-sm font-medium text-ink truncate">{a.firstName} {a.lastName}</p>
+                    <p className="text-xs text-ink-muted truncate">{a.email}</p>
                   </div>
                   <Button
                     variant="danger"
@@ -127,8 +127,8 @@ function HoaAdminsModal({ hoa, onClose }) {
           )}
         </div>
 
-        <div className="border-t border-slate-100 pt-5">
-          <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Бүртгэлтэй хэрэглэгчийг админ болгох</h3>
+        <div className="border-t border-line pt-5">
+          <h3 className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-2">Бүртгэлтэй хэрэглэгчийг админ болгох</h3>
           <form onSubmit={handlePromote} className="flex gap-2">
             <input
               className={fieldInputCls}
@@ -143,8 +143,8 @@ function HoaAdminsModal({ hoa, onClose }) {
           </form>
         </div>
 
-        <div className="border-t border-slate-100 pt-5">
-          <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Шинэ админ бүртгэх</h3>
+        <div className="border-t border-line pt-5">
+          <h3 className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-3">Шинэ админ бүртгэх</h3>
           <form onSubmit={handleCreate} className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <FormField label="Нэр">
@@ -235,9 +235,9 @@ export default function PlatformOrganizations() {
     <div className="space-y-6 max-w-2xl">
       <PageHeader title="Байгууллагууд" subtitle="Системд бүртгэлтэй бүх СӨХ. Платформ админ шинэ СӨХ үүсгэж, админ томилох боломжтой." />
 
-      <form onSubmit={handleCreate} className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 space-y-3">
-        <h2 className="text-sm font-semibold text-slate-900">Шинэ СӨХ үүсгэх</h2>
-        <p className="text-xs text-slate-500 -mt-1">Шинэ СӨХ нь тусдаа орчинтой байх бөгөөд түүний админ зөвхөн энэ СӨХ-ийн мэдээллийг харах, удирдах эрхтэй.</p>
+      <form onSubmit={handleCreate} className="bg-surface border border-line rounded-2xl shadow-sm p-5 space-y-3">
+        <h2 className="text-sm font-semibold text-ink">Шинэ СӨХ үүсгэх</h2>
+        <p className="text-xs text-ink-muted -mt-1">Шинэ СӨХ нь тусдаа орчинтой байх бөгөөд түүний админ зөвхөн энэ СӨХ-ийн мэдээллийг харах, удирдах эрхтэй.</p>
         <FormField label="СӨХ-ийн нэр">
           <input className={fieldInputCls} value={name} onChange={e => setName(e.target.value)} placeholder="Жишээ: Алтан гадас СӨХ" required />
         </FormField>
@@ -245,8 +245,8 @@ export default function PlatformOrganizations() {
           <input className={fieldInputCls} value={address} onChange={e => setAddress(e.target.value)} placeholder="Хаяг (заавал биш)" />
         </FormField>
 
-        <div className="border-t border-slate-100 pt-3 mt-1">
-          <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Анхны админ</h3>
+        <div className="border-t border-line pt-3 mt-1">
+          <h3 className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-3">Анхны админ</h3>
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <FormField label="Нэр">
@@ -273,7 +273,7 @@ export default function PlatformOrganizations() {
         </Button>
       </form>
 
-      {error && <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded-xl bg-danger-bg border border-danger-bg px-4 py-3 text-sm text-danger-text">{error}</div>}
 
       {loading ? (
         <Skeleton.List rows={3} />
@@ -284,8 +284,8 @@ export default function PlatformOrganizations() {
           {hoas.map(h => (
             <Card key={h._id} className="px-5 py-3.5 flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-slate-900 truncate">{h.name}</p>
-                {h.address && <p className="text-xs text-slate-500 mt-0.5 truncate">{h.address}</p>}
+                <p className="text-sm font-semibold text-ink truncate">{h.name}</p>
+                {h.address && <p className="text-xs text-ink-muted mt-0.5 truncate">{h.address}</p>}
               </div>
               <Button variant="secondary" size="sm" className="flex-shrink-0" onClick={() => setAdminsHoa(h)}>
                 Админ удирдах

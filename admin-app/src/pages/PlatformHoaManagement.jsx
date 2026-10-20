@@ -24,31 +24,31 @@ function HoaCard({ hoa, catalog, busyKey, onToggle }) {
     <Card className="p-5 space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="text-sm font-semibold text-slate-900 truncate">{hoa.name}</h2>
-          {hoa.address && <p className="text-xs text-slate-500 mt-0.5 truncate">{hoa.address}</p>}
+          <h2 className="text-sm font-semibold text-ink truncate">{hoa.name}</h2>
+          {hoa.address && <p className="text-xs text-ink-muted mt-0.5 truncate">{hoa.address}</p>}
         </div>
-        <span className="flex-shrink-0 text-xs font-medium text-slate-500 bg-slate-100 rounded-full px-2.5 py-1 tabular-nums">
+        <span className="flex-shrink-0 text-xs font-medium text-ink-muted bg-surface-muted rounded-full px-2.5 py-1 tabular-nums">
           {enabledCount}/{catalog.length} идэвхтэй
         </span>
       </div>
 
       <dl className="grid grid-cols-5 gap-2">
         {STAT_LABELS.map(([key, label]) => (
-          <div key={key} className="bg-slate-50 rounded-xl px-2 py-2 text-center min-w-0 flex flex-col-reverse">
-            <dt className="text-[11px] text-slate-500 truncate">{label}</dt>
-            <dd className="text-base font-semibold text-slate-900 tabular-nums">{hoa.stats[key]}</dd>
+          <div key={key} className="bg-surface-muted rounded-xl px-2 py-2 text-center min-w-0 flex flex-col-reverse">
+            <dt className="text-[11px] text-ink-muted truncate">{label}</dt>
+            <dd className="text-base font-semibold text-ink tabular-nums">{hoa.stats[key]}</dd>
           </div>
         ))}
       </dl>
 
-      <ul className="divide-y divide-slate-100 border-t border-slate-100">
+      <ul className="divide-y divide-line border-t border-line">
         {catalog.map(f => {
           const id = `${hoa._id}-${f.key}`
           return (
             <li key={f.key} className="flex items-center justify-between gap-4 py-3 last:pb-0">
               <div className="min-w-0">
-                <p className="text-sm font-medium text-slate-800">{f.label}</p>
-                <p className="text-xs text-slate-500">{f.description}</p>
+                <p className="text-sm font-medium text-ink">{f.label}</p>
+                <p className="text-xs text-ink-muted">{f.description}</p>
               </div>
               <Switch
                 checked={hoa.features[f.key]}
@@ -126,7 +126,7 @@ export default function PlatformHoaManagement() {
       />
 
       <div className="relative">
-        <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+        <Search className="w-4 h-4 text-ink-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
         <input
           type="search"
           className={`${fieldInputCls} pl-10`}
@@ -138,7 +138,7 @@ export default function PlatformHoaManagement() {
         />
       </div>
 
-      {error && <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded-xl bg-danger-bg border border-danger-bg px-4 py-3 text-sm text-danger-text">{error}</div>}
 
       {loading ? (
         <Skeleton.List rows={3} />

@@ -54,42 +54,42 @@ export default function AdminDashboard() {
             <StatCard
               label="Нийт төлбөр (₮)"
               value={Number(stats.payments.totalAmount || 0).toLocaleString('mn-MN')}
-              accent="bg-green-100 text-green-700"
+              accent="bg-success-bg text-success-text"
               icon={<CircleDollarSign className="w-5 h-5" />}
             />
             <StatCard
               label="Төлөгдөөгүй нэхэмжлэл"
               value={stats.payments.pending || 0}
-              accent="bg-yellow-100 text-yellow-700"
+              accent="bg-warning-bg text-warning-text"
               icon={<AlertTriangle className="w-5 h-5" />}
             />
             <StatCard
               label="Нээлттэй санал гомдол"
               value={stats.feedbackOpen}
-              accent="bg-red-100 text-red-700"
+              accent="bg-danger-bg text-danger-text"
               icon={<MessageSquare className="w-5 h-5" />}
             />
             <StatCard
               label="Хүлээгдэж буй хүсэлт"
               value={stats.pendingMembers.length}
-              accent="bg-blue-100 text-blue-700"
+              accent="bg-blue-100 text-brand-hover"
               icon={<Users className="w-5 h-5" />}
             />
           </div>
 
           <Card>
-            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-slate-900">Хүлээгдэж буй гишүүнчлэлийн хүсэлт</h2>
-              <Link to="/users" className="text-xs font-medium text-blue-600 hover:text-blue-700">Бүгдийг харах →</Link>
+            <div className="px-5 py-4 border-b border-line flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-ink">Хүлээгдэж буй гишүүнчлэлийн хүсэлт</h2>
+              <Link to="/users" className="text-xs font-medium text-brand-text hover:text-brand-hover">Бүгдийг харах →</Link>
             </div>
             {stats.pendingMembers.length === 0 ? (
-              <p className="px-5 py-8 text-sm text-slate-400 text-center">Хүлээгдэж буй хүсэлт алга.</p>
+              <p className="px-5 py-8 text-sm text-ink-muted text-center">Хүлээгдэж буй хүсэлт алга.</p>
             ) : (
-              <ul className="divide-y divide-slate-100">
+              <ul className="divide-y divide-line">
                 {stats.pendingMembers.slice(0, 5).map(u => (
                   <li key={u._id} className="px-5 py-3 flex items-center justify-between text-sm">
-                    <span className="text-slate-700">{u.firstName} {u.lastName} <span className="text-slate-400">({u.email})</span></span>
-                    <Link to="/users" className="text-xs font-medium text-blue-600 hover:text-blue-700">Харах</Link>
+                    <span className="text-ink-secondary">{u.firstName} {u.lastName} <span className="text-ink-muted">({u.email})</span></span>
+                    <Link to="/users" className="text-xs font-medium text-brand-text hover:text-brand-hover">Харах</Link>
                   </li>
                 ))}
               </ul>

@@ -1,8 +1,8 @@
 export default function Card({ interactive = false, className = '', children, ...rest }) {
   return (
     <div
-      className={`bg-white border border-slate-200 rounded-2xl shadow-sm ${
-        interactive ? 'cursor-pointer hover:border-slate-300 hover:shadow-md transition-all duration-150' : ''
+      className={`bg-surface border border-line rounded-card shadow-card ${
+        interactive ? 'cursor-pointer transition-[border-color,box-shadow] duration-150 hover:border-line-strong/40 hover:shadow-pop' : ''
       } ${className}`}
       {...rest}
     >

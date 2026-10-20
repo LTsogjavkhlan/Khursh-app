@@ -1,7 +1,8 @@
 @import "tailwindcss";
+@import "./styles/tokens.css";
 
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: var(--font-sans);
   line-height: 1.5;
   font-weight: 400;
   font-synthesis: none;
@@ -14,7 +15,9 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  transition: background-color 0.25s ease, color 0.25s ease;
+  background-color: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans);
 }
 
 /*
@@ -67,4 +70,15 @@ body {
 
 .animate-page-in {
   animation: pageIn 180ms ease-out;
+}
+
+/* Respect reduced-motion: no entrance animations at all */
+@media (prefers-reduced-motion: reduce) {
+  .animate-page-in,
+  .animate-slide-up,
+  [class*="animate-[modalIn"],
+  [class*="animate-[fadeIn"],
+  [class*="animate-[toastIn"] {
+    animation: none !important;
+  }
 }

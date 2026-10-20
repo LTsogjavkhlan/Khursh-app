@@ -72,7 +72,7 @@ export default function AdminNotifications() {
     <div className="space-y-6 max-w-3xl">
       <PageHeader title="Мэдэгдэл" subtitle="СӨХ-ийн бүх оршин суугчдад мэдэгдэл илгээх." />
 
-      <form onSubmit={handleSend} className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 space-y-4">
+      <form onSubmit={handleSend} className="bg-surface border border-line rounded-2xl shadow-sm p-5 space-y-4">
         <FormField label="Төрөл">
           <select value={type} onChange={e => setType(e.target.value)} className={fieldInputCls}>
             {TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -90,11 +90,11 @@ export default function AdminNotifications() {
       </form>
 
       {error && (
-        <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
+        <div className="rounded-xl bg-danger-bg border border-danger-bg px-4 py-3 text-sm text-danger-text">{error}</div>
       )}
 
       <div>
-        <h2 className="text-sm font-semibold text-slate-900 mb-3">Илгээсэн мэдэгдлүүд</h2>
+        <h2 className="text-sm font-semibold text-ink mb-3">Илгээсэн мэдэгдлүүд</h2>
         {loading ? (
           <Skeleton.List rows={3} />
         ) : items.length === 0 ? (
@@ -107,10 +107,10 @@ export default function AdminNotifications() {
                 <Card key={n._id} className="p-4">
                   <div className="flex items-center justify-between gap-2 mb-1.5">
                     <Badge tone={meta.tone}>{meta.label}</Badge>
-                    <span className="text-xs text-slate-400">{n.createdAt ? new Date(n.createdAt).toLocaleDateString('mn-MN') : ''}</span>
+                    <span className="text-xs text-ink-muted">{n.createdAt ? new Date(n.createdAt).toLocaleDateString('mn-MN') : ''}</span>
                   </div>
-                  <p className="text-sm font-semibold text-slate-900">{n.title}</p>
-                  <p className="text-sm text-slate-600 mt-0.5">{n.message}</p>
+                  <p className="text-sm font-semibold text-ink">{n.title}</p>
+                  <p className="text-sm text-ink-secondary mt-0.5">{n.message}</p>
                 </Card>
               )
             })}
