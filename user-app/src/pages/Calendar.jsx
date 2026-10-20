@@ -1,360 +1,234 @@
-import { useState, useRef, useEffect } from 'react'
-import { gsap } from 'gsap'
+import { useState, useEffect, useMemo } from 'react'
 import { apiRequest } from '../api/client'
-import { useTheme } from '../context/ThemeContext'
-import { ChevronLeft, ChevronRight, X } from 'lucide-react'
+import PageHeader from '../components/ui/PageHeader'
+import Card from '../components/ui/Card'
+import EmptyState from '../components/ui/EmptyState'
+import { SkeletonBlock } from '../components/ui/Skeleton'
+import { FOCUS_RING } from '../components/ui/Button'
+import { dayLabel } from '../utils/format'
+import { ChevronLeft, ChevronRight, CalendarDays, Clock, MapPin, Trash2, AlertCircle } from 'lucide-react'
+
+const WEEKDAYS = ['Да', 'Мя', 'Лх', 'Пү', 'Ба', 'Бя', 'Ня']
+const WEEKDAYS_LONG = ['Ням', 'Даваа', 'Мягмар', 'Лхагва', 'Пүрэв', 'Баасан', 'Бямба']
+
+// Recurring weekly garbage pickup (Wednesday mornings)
+const GARBAGE = { title: 'Хог ачих өдөр', time: 'Өглөө', recurring: true }
+
+const sameDay = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+const dayKey = (d) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
+
+// Monday-first grid of whole weeks covering the month
+function buildGrid(year, month) {
+    const first = new Date(year, month, 1)
+    const offset = (first.getDay() + 6) % 7
+    const daysInMonth = new Date(year, month + 1, 0).getDate()
+    const cells = Math.ceil((offset + daysInMonth) / 7) * 7
+    return Array.from({ length: cells }, (_, i) => {
+        const date = new Date(year, month, i - offset + 1)
+        return { date, inMonth: date.getMonth() === month }
+    })
+}
+
+function EventItem({ event }) {
+    const recurring = event.recurring
+    return (
+        <li className="flex gap-3 rounded-card border border-line bg-surface p-3.5">
+            <span className={`mt-0.5 h-auto w-1 shrink-0 rounded-full ${recurring ? 'bg-warning-text/60' : 'bg-brand-text'}`} aria-hidden="true" />
+            <div className="min-w-0 flex-1">
+                <p className="flex items-center gap-1.5 text-[15px] font-semibold text-ink">
+                    {recurring && <Trash2 size={15} className="shrink-0 text-warning-text" aria-hidden="true" />}
+                    {event.title}
+                </p>
+                {(event.time || event.location) && (
+                    <p className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[13px] text-ink-muted">
+                        {event.time && <span className="inline-flex items-center gap-1"><Clock size={13} aria-hidden="true" />{event.time}</span>}
+                        {event.location && <span className="inline-flex items-center gap-1"><MapPin size={13} aria-hidden="true" />{event.location}</span>}
+                    </p>
+                )}
+                {event.description && <p className="mt-1.5 text-sm leading-relaxed text-ink-secondary">{event.description}</p>}
+                {recurring && <p className="mt-1 text-xs text-ink-muted">Долоо хоног бүрийн Лхагва гараг</p>}
+            </div>
+        </li>
+    )
+}
 
 export default function Calendar() {
-    const headerRef = useRef(null)
-    const calendarRef = useRef(null)
-
-    const currentDate = new Date()
-    const [currentMonth, setCurrentMonth] = useState(currentDate.getMonth())
-    const [currentYear, setCurrentYear] = useState(currentDate.getFullYear())
-    const [selectedDay, setSelectedDay] = useState(null)
-    const [showEventPopup, setShowEventPopup] = useState(false)
+    const today = useMemo(() => new Date(), [])
+    const [month, setMonth] = useState(today.getMonth())
+    const [year, setYear] = useState(today.getFullYear())
+    const [selected, setSelected] = useState(today)
     const [events, setEvents] = useState([])
-
-    const monthNames = [
-        "1-р сар", "2-р сар", "3-р сар", "4-р сар", "5-р сар", "6-р сар",
-        "7-р сар", "8-р сар", "9-р сар", "10-р сар", "11-р сар", "12-р сар"
-    ]
-    const weekDays = ["Даваа", "Мягмар", "Лхагва", "Пүрэв", "Баасан", "Бямба", "Ням"]
-
-    const garbageCollection = {
-        title: "Хог ачих өдөр",
-        color: "#f97316",
-        isRecurring: true,
-    }
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState(false)
 
     useEffect(() => {
         apiRequest('/api/events')
-            .then(data => {
-                const list = Array.isArray(data) ? data : []
-                setEvents(list.map(e => ({
-                    ...e,
-                    date: new Date(e.date),
-                    color: '#2563eb',
-                })))
-            })
-            .catch(() => {})
+            .then(data => setEvents((Array.isArray(data) ? data : []).map(e => ({ ...e, date: new Date(e.date) }))))
+            .catch(() => setError(true))
+            .finally(() => setLoading(false))
     }, [])
 
-    // Navigation functions
-    const goToPreviousMonth = () => {
-        setCurrentMonth(prev => {
-            const newMonth = prev - 1;
-            if (newMonth < 0) {
-                setCurrentYear(prevYear => prevYear - 1);
-                return 11;
-            }
-            return newMonth;
-        });
-        setSelectedDay(null);
-    }
-
-    const goToNextMonth = () => {
-        setCurrentMonth(prev => {
-            const newMonth = prev + 1;
-            if (newMonth > 11) {
-                setCurrentYear(prevYear => prevYear + 1);
-                return 0;
-            }
-            return newMonth;
-        });
-        setSelectedDay(null);
-    }
-
-    // Get all days of the current month with correct offset for weekday
-    const getDaysInMonth = () => {
-        const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
-        const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
-        const daysInMonth = lastDayOfMonth.getDate();
-
-        // Find the first Monday before the start of month if the 1st isn't a Monday
-        const firstDay = firstDayOfMonth.getDay(); // 0 is Sunday, 1 is Monday
-        const dayOffset = firstDay === 0 ? 6 : firstDay - 1; // Convert to 0 = Monday, 6 = Sunday
-
-        // Create the calendar grid
-        const totalCalendarDays = [];
-
-        // Add days from previous month
-        const lastMonthLastDay = new Date(currentYear, currentMonth, 0).getDate();
-        for (let i = dayOffset - 1; i >= 0; i--) {
-            totalCalendarDays.push({
-                day: lastMonthLastDay - i,
-                currentMonth: false,
-                date: new Date(currentYear, currentMonth - 1, lastMonthLastDay - i)
-            });
+    // Index events by day for O(1) lookup while rendering the grid
+    const byDay = useMemo(() => {
+        const map = new Map()
+        for (const e of events) {
+            const k = dayKey(e.date)
+            map.set(k, [...(map.get(k) || []), e])
         }
+        for (const list of map.values()) list.sort((a, b) => String(a.time || '').localeCompare(String(b.time || '')))
+        return map
+    }, [events])
 
-        // Add days from current month
-        for (let day = 1; day <= daysInMonth; day++) {
-            totalCalendarDays.push({
-                day,
-                currentMonth: true,
-                date: new Date(currentYear, currentMonth, day)
-            });
-        }
-
-        // Add days from next month to complete the grid rows
-        const daysNeededFromNextMonth = 7 - (totalCalendarDays.length % 7 || 7);
-        if (daysNeededFromNextMonth < 7) {
-            for (let day = 1; day <= daysNeededFromNextMonth; day++) {
-                totalCalendarDays.push({
-                    day,
-                    currentMonth: false,
-                    date: new Date(currentYear, currentMonth + 1, day)
-                });
-            }
-        }
-
-        return totalCalendarDays;
+    const eventsFor = (date) => {
+        const list = [...(byDay.get(dayKey(date)) || [])]
+        if (date.getDay() === 3) list.unshift({ ...GARBAGE, _id: 'garbage' })
+        return list
     }
 
-    const getEventsForDate = (date) => {
-        if (!date) return [];
+    const grid = buildGrid(year, month)
 
-        const dayEvents = events.filter(event =>
-            event.date.getDate() === date.getDate() &&
-            event.date.getMonth() === date.getMonth() &&
-            event.date.getFullYear() === date.getFullYear()
-        );
-
-        if (date.getDay() === 3) {
-            dayEvents.push({ ...garbageCollection, date, time: "Өглөө" });
-        }
-
-        return dayEvents;
+    const shiftMonth = (delta) => {
+        const d = new Date(year, month + delta, 1)
+        setMonth(d.getMonth()); setYear(d.getFullYear())
+        // Keep the agenda in sync: select today when it's in view, else the 1st
+        setSelected(d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear() ? today : d)
     }
 
-    const handleDayClick = (day) => {
-        setSelectedDay(day);
-        const hasEvents = getEventsForDate(day.date).length > 0;
-        if (hasEvents) {
-            setShowEventPopup(true);
-        }
-    }
+    const goToday = () => { setMonth(today.getMonth()); setYear(today.getFullYear()); setSelected(today) }
 
-    // Close the event popup
-    const closeEventPopup = () => {
-        setShowEventPopup(false);
-    }
+    const selectedEvents = eventsFor(selected)
 
-    // Get the current month's days
-    const daysInMonth = getDaysInMonth();
+    // Upcoming (non-recurring) events from today on, in this month view
+    const upcoming = events
+        .filter(e => e.date.getMonth() === month && e.date.getFullYear() === year && e.date >= new Date(today.getFullYear(), today.getMonth(), today.getDate()))
+        .sort((a, b) => a.date - b.date)
 
-    useEffect(() => {
-        const welcomeAnim = gsap.from(headerRef.current, {
-            y: -20,
-            opacity: 0,
-            duration: 0.5,
-            ease: "power2.out"
-        });
-
-        const calendarAnim = gsap.from(calendarRef.current, {
-            y: 20,
-            opacity: 0,
-            duration: 0.5,
-            delay: 0.2,
-            ease: "power1.out"
-        });
-
-        return () => {
-            welcomeAnim.kill();
-            calendarAnim.kill();
-        };
-    }, []);
-
-    // Styles
-    const { colors } = useTheme()
-    const styles = {
-        container: { padding: '16px', paddingBottom: '72px', position: 'relative' },
-        header: { marginBottom: '16px' },
-        headerTitle: { fontSize: '24px', fontWeight: 'bold', color: colors.text },
-        headerSubtitle: { color: colors.textMuted, marginTop: '4px' },
-        calendarContainer: {
-            backgroundColor: colors.surface, borderRadius: '12px',
-            boxShadow: `0 1px 3px ${colors.shadow}`, overflow: 'hidden',
-            border: `1px solid ${colors.border}`,
-        },
-        calendarHeader: {
-            padding: '16px', display: 'flex', justifyContent: 'space-between',
-            alignItems: 'center', borderBottom: `1px solid ${colors.border}`,
-        },
-        monthTitle: { fontSize: '18px', fontWeight: '600', color: colors.text },
-        navigationButton: {
-            padding: '8px', borderRadius: '8px', backgroundColor: colors.surfaceAlt,
-            border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        },
-        weekdayHeader: {
-            display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)',
-            borderBottom: `1px solid ${colors.border}`, backgroundColor: colors.surfaceAlt,
-        },
-        weekday: { padding: '8px', textAlign: 'center', fontSize: '14px', fontWeight: '500', color: colors.textMuted },
-        weekendDay: { backgroundColor: colors.surfaceAlt, color: colors.textSub, fontWeight: '600' },
-        calendarGrid: { display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '1px', backgroundColor: colors.border },
-        calendarDay: {
-            position: 'relative', aspectRatio: '1', backgroundColor: colors.surface,
-            display: 'flex', flexDirection: 'column', alignItems: 'center',
-            justifyContent: 'center', cursor: 'pointer', padding: '4px',
-        },
-        calendarWeekendDay: { backgroundColor: colors.surfaceAlt },
-        calendarOtherMonthDay: { backgroundColor: colors.bg },
-        dayNumber: { fontSize: '15px', fontWeight: '500', marginBottom: '2px' },
-        currentMonth: { color: colors.text },
-        otherMonth: { color: colors.textMuted, opacity: '0.5', fontSize: '13px', fontWeight: '400' },
-        selectedDay: { backgroundColor: colors.accentBg, border: `1px solid ${colors.accent}` },
-        eventIndicatorContainer: { display: 'flex', gap: '2px', marginTop: '2px' },
-        eventIndicator: { width: '4px', height: '4px', borderRadius: '50%' },
-        overlayContainer: {
-            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-            display: showEventPopup ? 'flex' : 'none',
-            alignItems: 'center', justifyContent: 'center',
-            backgroundColor: colors.overlay, backdropFilter: 'blur(5px)', zIndex: 50,
-        },
-        popupContainer: {
-            width: '90%', maxWidth: '400px', backgroundColor: colors.surface,
-            borderRadius: '12px', padding: '20px',
-            boxShadow: `0 10px 25px -5px ${colors.shadow}`, border: `1px solid ${colors.border}`,
-        },
-        popupHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' },
-        popupTitle: { fontSize: '18px', fontWeight: '600', color: colors.text, display: 'flex', flexDirection: 'column', alignItems: 'center' },
-        popupDayNumber: { fontSize: '40px', fontWeight: '700', lineHeight: '1', color: colors.text, marginBottom: '4px' },
-        popupMonthYear: { fontSize: '16px', fontWeight: '500', color: colors.textSub },
-        popupCloseButton: { backgroundColor: 'transparent', border: 'none', cursor: 'pointer', color: colors.textMuted, padding: '4px' },
-        eventListContainer: { marginTop: '12px' },
-        eventItem: { padding: '12px', borderRadius: '8px', marginBottom: '10px', backgroundColor: colors.surfaceAlt },
-        eventTitle: { fontSize: '16px', fontWeight: '500', marginBottom: '4px', color: colors.text },
-        eventTime: { fontSize: '14px', color: colors.textMuted },
-        eventTag: { display: 'inline-block', padding: '2px 8px', borderRadius: '9999px', fontSize: '12px', fontWeight: '500', color: 'white', marginTop: '6px' },
-        noEvents: { textAlign: 'center', padding: '20px', color: colors.textMuted },
-    };
+    const isCurrentMonth = month === today.getMonth() && year === today.getFullYear()
 
     return (
-        <div style={styles.container}>
-            <header style={styles.header} ref={headerRef}>
-                <h1 style={styles.headerTitle}>Нэгдсэн хуанли</h1>
-                <p style={styles.headerSubtitle}>Үйл явдал, мэдэгдэл</p>
-            </header>
+        <div className="space-y-6 pb-4 pt-2">
+            <PageHeader title="Хуанли" description="СӨХ-ийн үйл явдал, хурал, цэвэрлэгээ" />
 
-            <div style={styles.calendarContainer} ref={calendarRef}>
-                <div style={styles.calendarHeader}>
-                    <button
-                        style={styles.navigationButton}
-                        onClick={goToPreviousMonth}
-                    >
-                        <ChevronLeft size={16} />
+            <Card padded={false} className="p-4">
+                <div className="mb-3 flex items-center justify-between gap-2">
+                    <button type="button" onClick={() => shiftMonth(-1)} aria-label="Өмнөх сар"
+                        className={`flex h-10 w-10 items-center justify-center rounded-full text-ink-secondary transition-colors hover:bg-surface-muted ${FOCUS_RING}`}>
+                        <ChevronLeft size={20} aria-hidden="true" />
                     </button>
-                    <h2 style={styles.monthTitle}>{`${monthNames[currentMonth]} ${currentYear}`}</h2>
-                    <button
-                        style={styles.navigationButton}
-                        onClick={goToNextMonth}
-                    >
-                        <ChevronRight size={16} />
+                    <div className="text-center">
+                        <h2 className="text-base font-semibold text-ink" aria-live="polite">{year} оны {month + 1}-р сар</h2>
+                        {!isCurrentMonth && (
+                            <button type="button" onClick={goToday} className={`mt-0.5 rounded text-xs font-semibold text-brand-text hover:underline ${FOCUS_RING}`}>
+                                Өнөөдөр рүү буцах
+                            </button>
+                        )}
+                    </div>
+                    <button type="button" onClick={() => shiftMonth(1)} aria-label="Дараах сар"
+                        className={`flex h-10 w-10 items-center justify-center rounded-full text-ink-secondary transition-colors hover:bg-surface-muted ${FOCUS_RING}`}>
+                        <ChevronRight size={20} aria-hidden="true" />
                     </button>
                 </div>
 
-                <div style={styles.weekdayHeader}>
-                    {weekDays.map((day, index) => (
-                        <div
-                            key={index}
-                            style={{
-                                ...styles.weekday,
-                                ...(index >= 5 ? styles.weekendDay : {})
-                            }}
-                        >
-                            {day}
+                <div role="grid" aria-label="Хуанли">
+                    <div role="row" className="grid grid-cols-7">
+                        {WEEKDAYS.map((d, i) => (
+                            <span key={d} role="columnheader" className={`pb-2 text-center text-xs font-semibold ${i >= 5 ? 'text-ink-secondary' : 'text-ink-muted'}`}>{d}</span>
+                        ))}
+                    </div>
+                    {Array.from({ length: grid.length / 7 }, (_, w) => (
+                        <div role="row" key={w} className="grid grid-cols-7 gap-y-1">
+                            {grid.slice(w * 7, w * 7 + 7).map(({ date, inMonth }) => {
+                                const list = eventsFor(date)
+                                const hasHoaEvent = list.some(e => !e.recurring)
+                                const isToday = sameDay(date, today)
+                                const isSelected = sameDay(date, selected)
+                                const label = `${dayLabel(date)}, ${WEEKDAYS_LONG[date.getDay()]}${list.length ? `, ${list.length} үйл явдал` : ''}`
+                                return (
+                                    <div role="gridcell" key={dayKey(date)} aria-selected={isSelected} className="flex justify-center">
+                                        <button
+                                            type="button"
+                                            onClick={() => { setSelected(date); if (!inMonth) { setMonth(date.getMonth()); setYear(date.getFullYear()) } }}
+                                            aria-label={label}
+                                            aria-current={isToday ? 'date' : undefined}
+                                            className={`relative flex h-11 w-11 flex-col items-center justify-center rounded-full text-[15px] tabular-nums transition-colors ${FOCUS_RING} ${
+                                                isSelected
+                                                    ? 'bg-brand font-semibold text-on-brand'
+                                                    : isToday
+                                                        ? 'bg-brand-soft font-semibold text-brand-text'
+                                                        : inMonth ? 'text-ink hover:bg-surface-muted' : 'text-ink-muted/60 hover:bg-surface-muted'
+                                            }`}
+                                        >
+                                            {date.getDate()}
+                                            {list.length > 0 && (
+                                                <span aria-hidden="true" className="absolute bottom-1 flex gap-0.5">
+                                                    {hasHoaEvent && <span className={`h-1 w-1 rounded-full ${isSelected ? 'bg-on-brand' : 'bg-brand-text'}`} />}
+                                                    {date.getDay() === 3 && <span className={`h-1 w-1 rounded-full ${isSelected ? 'bg-on-brand/70' : 'bg-warning-text/70'}`} />}
+                                                </span>
+                                            )}
+                                        </button>
+                                    </div>
+                                )
+                            })}
                         </div>
                     ))}
                 </div>
 
-                <div style={styles.calendarGrid}>
-                    {daysInMonth.map((day, index) => {
-                        const events = getEventsForDate(day.date);
-                        const hasEvents = events.length > 0;
-                        const isWeekend = index % 7 >= 5; // 5 and 6 are weekend indices (Sat, Sun)
-
-                        return (
-                            <div
-                                key={index}
-                                style={{
-                                    ...styles.calendarDay,
-                                    ...(isWeekend ? styles.calendarWeekendDay : {}),
-                                    ...(!day.currentMonth ? styles.calendarOtherMonthDay : {}),
-                                    ...(selectedDay && selectedDay.day === day.day && selectedDay.date.getMonth() === day.date.getMonth() ? styles.selectedDay : {}),
-                                }}
-                                onClick={() => handleDayClick(day)}
-                            >
-                                <span style={{
-                                    ...styles.dayNumber,
-                                    ...(day.currentMonth ? styles.currentMonth : styles.otherMonth)
-                                }}>
-                                    {day.day}
-                                </span>
-
-                                {hasEvents && (
-                                    <div style={styles.eventIndicatorContainer}>
-                                        {events.slice(0, 3).map((event, i) => (
-                                            <div
-                                                key={i}
-                                                style={{
-                                                    ...styles.eventIndicator,
-                                                    backgroundColor: event.color
-                                                }}
-                                            />
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    })}
+                <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 border-t border-line pt-3 text-xs text-ink-muted">
+                    <span className="inline-flex items-center gap-1.5"><span aria-hidden="true" className="h-2 w-2 rounded-full bg-brand-text" />СӨХ-ийн үйл явдал</span>
+                    <span className="inline-flex items-center gap-1.5"><span aria-hidden="true" className="h-2 w-2 rounded-full bg-warning-text/70" />Хог ачих өдөр</span>
                 </div>
-            </div>
+            </Card>
 
-            {/* Event Details Popup */}
-            <div style={styles.overlayContainer} onClick={closeEventPopup}>
-                <div style={styles.popupContainer} onClick={e => e.stopPropagation()}>
-                    <div style={styles.popupHeader}>
-                        <h3 style={styles.popupTitle}>
-                            {selectedDay && (
-                                <>
-                                    <span style={styles.popupDayNumber}>
-                                        {selectedDay.day}
-                                    </span>
-                                    <span style={styles.popupMonthYear}>
-                                        {`${monthNames[selectedDay.date.getMonth()]}, ${selectedDay.date.getFullYear()}`}
-                                    </span>
-                                </>
-                            )}
-                        </h3>
-                        <button style={styles.popupCloseButton} onClick={closeEventPopup}>
-                            <X size={20} />
-                        </button>
-                    </div>
+            {/* Agenda for the selected day */}
+            <section aria-labelledby="day-title" aria-live="polite">
+                <h2 id="day-title" className="mb-3 text-[15px] font-semibold text-ink-muted">
+                    {sameDay(selected, today) ? 'Өнөөдөр · ' : ''}{dayLabel(selected)}, {WEEKDAYS_LONG[selected.getDay()]}
+                </h2>
+                {loading ? (
+                    <SkeletonBlock className="h-20 rounded-card" />
+                ) : selectedEvents.length === 0 ? (
+                    <p className="rounded-card border border-dashed border-line-strong/50 px-4 py-5 text-center text-sm text-ink-muted">Энэ өдөр үйл явдал алга</p>
+                ) : (
+                    <ul className="space-y-2.5">
+                        {selectedEvents.map(e => <EventItem key={e._id} event={e} />)}
+                    </ul>
+                )}
+            </section>
 
-                    <div style={styles.eventListContainer}>
-                        {selectedDay && getEventsForDate(selectedDay.date).length > 0 ? (
-                            getEventsForDate(selectedDay.date).map((event, index) => (
-                                <div key={index} style={styles.eventItem}>
-                                    <div style={styles.eventTitle}>{event.title}</div>
-                                    <div style={styles.eventTime}>{event.time}</div>
-                                    <div
-                                        style={{
-                                            ...styles.eventTag,
-                                            backgroundColor: event.color,
-                                        }}
-                                    >
-                                        {event.type}
-                                    </div>
-                                </div>
-                            ))
-                        ) : (
-                            <div style={styles.noEvents}>Энэ өдөр үйл явдал алга</div>
-                        )}
-                    </div>
-                </div>
-            </div>
+            {/* This month's HOA events */}
+            <section aria-labelledby="upcoming-title">
+                <h2 id="upcoming-title" className="mb-3 text-[15px] font-semibold text-ink-muted">
+                    {isCurrentMonth ? 'Удахгүй болох' : `${month + 1}-р сарын үйл явдал`}
+                </h2>
+                {loading ? (
+                    <SkeletonBlock className="h-24 rounded-card" />
+                ) : error ? (
+                    <Card><EmptyState tone="error" icon={AlertCircle} title="Үйл явдлыг ачаалж чадсангүй" description="Дахин оролдоно уу." className="py-4" /></Card>
+                ) : upcoming.length === 0 ? (
+                    <Card><EmptyState icon={CalendarDays} title="Үйл явдал алга" description="Энэ сард төлөвлөсөн үйл явдал байхгүй байна." className="py-4" /></Card>
+                ) : (
+                    <Card padded={false}>
+                        <ul className="divide-y divide-line">
+                            {upcoming.map(e => (
+                                <li key={e._id}>
+                                    <button type="button" onClick={() => setSelected(e.date)}
+                                        className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-muted focus-visible:bg-surface-muted focus-visible:outline-none">
+                                        <span className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-control bg-brand-soft text-brand-text">
+                                            <span className="text-lg font-bold leading-none tabular-nums">{e.date.getDate()}</span>
+                                            <span className="text-[10px] font-semibold">{WEEKDAYS_LONG[e.date.getDay()]}</span>
+                                        </span>
+                                        <span className="min-w-0 flex-1">
+                                            <span className="block truncate text-[15px] font-semibold text-ink">{e.title}</span>
+                                            <span className="block truncate text-[13px] text-ink-muted">{[e.time, e.location].filter(Boolean).join(' · ') || dayLabel(e.date)}</span>
+                                        </span>
+                                        <ChevronRight size={18} className="shrink-0 text-ink-muted" aria-hidden="true" />
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    </Card>
+                )}
+            </section>
         </div>
-    );
-} 
+    )
+}
