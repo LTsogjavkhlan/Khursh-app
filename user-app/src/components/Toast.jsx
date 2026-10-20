@@ -24,7 +24,7 @@ export function ToastProvider({ children }) {
                 aria-live="polite"
                 style={{
                     position: 'fixed', left: '16px', right: '16px', zIndex: 300,
-                    bottom: 'calc(88px + env(safe-area-inset-bottom))',
+                    bottom: 'calc(96px + env(safe-area-inset-bottom))',
                     display: 'flex', justifyContent: 'center', pointerEvents: 'none',
                 }}
             >

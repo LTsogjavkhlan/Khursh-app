@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { gsap } from 'gsap'
+import { useLocation } from 'react-router-dom'
 import { apiRequest, API_BASE_URL } from '../api/client'
 import { useTheme } from '../context/ThemeContext'
 import { useAuth } from '../context/AuthContext'
@@ -350,7 +351,9 @@ export default function Payments() {
     const { colors } = useTheme()
     const { user, hasApartmentAccess } = useAuth()
 
-    const [activeTab,       setActiveTab]       = useState('current')
+    // A link can open the history tab directly (e.g. Home → «Төлбөрийн түүх»)
+    const location = useLocation()
+    const [activeTab,       setActiveTab]       = useState(location.state?.tab === 'history' ? 'history' : 'current')
     const [pendingPayments, setPendingPayments] = useState([])
     const [paymentHistory,  setPaymentHistory]  = useState([])
     const [loading,         setLoading]         = useState(true)
@@ -483,9 +486,9 @@ export default function Payments() {
                 {/* Tabs */}
                 <div style={{ display: 'flex', borderBottom: `1px solid ${colors.border}`, marginBottom: '20px' }}>
                     {[['current', 'Төлбөрүүд'], ['history', 'Төлбөрийн түүх']].map(([id, label]) => (
-                        <div key={id} style={{ ...s.tab, ...(activeTab === id ? s.activeTab : s.inactiveTab) }} onClick={() => setActiveTab(id)}>
+                        <button key={id} type="button" aria-pressed={activeTab === id} style={{ ...s.tab, background: 'none', border: 'none', fontFamily: 'inherit', ...(activeTab === id ? s.activeTab : s.inactiveTab) }} onClick={() => setActiveTab(id)}>
                             {label}
-                        </div>
+                        </button>
                     ))}
                 </div>
 

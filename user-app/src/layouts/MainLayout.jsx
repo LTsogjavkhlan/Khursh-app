@@ -171,11 +171,14 @@ export default function MainLayout() {
     }, [isMoreMenuOpen])
 
     const badgeLabel = notificationCount > 9 ? '9+' : notificationCount
+    // Home renders its own full-bleed header (greeting, balance, icon buttons)
+    const isHome = location.pathname === '/'
 
     return (
         <div className="user-layout flex min-h-screen flex-col bg-canvas text-ink">
 
-            {/* Top Header Bar */}
+            {/* Top Header Bar (every page except Home) */}
+            {!isHome && (
             <header
                 className={`fixed inset-x-0 top-0 z-10 border-b border-line bg-surface pt-[env(safe-area-inset-top)] transition-shadow duration-200 motion-reduce:transition-none ${
                     isScrolled ? 'shadow-card' : ''
@@ -213,34 +216,38 @@ export default function MainLayout() {
                     </div>
                 </div>
             </header>
+            )}
 
             {/* Main Content - with padding for header and nav */}
-            <main className="w-full flex-1 overflow-x-hidden px-4 pb-[calc(80px+env(safe-area-inset-bottom))] pt-[calc(64px+env(safe-area-inset-top))]">
+            <main className={`w-full flex-1 overflow-x-hidden pb-[calc(104px+env(safe-area-inset-bottom))] ${
+                // Home's white sheet runs to the bottom, so the page behind it is white too
+                isHome ? 'bg-surface' : 'px-4 pt-[calc(64px+env(safe-area-inset-top))]'
+            }`}>
                 <div className="mx-auto w-full max-w-3xl">
-                    <Outlet />
+                    <Outlet context={{ notificationCount }} />
                 </div>
             </main>
 
             {/* Mobile Bottom Navigation */}
-            <nav aria-label="Үндсэн цэс" className="fixed inset-x-0 bottom-0 z-10 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)]">
+            {/* Floating, rounded bottom bar; the current tab sits in a soft pill */}
+            <nav aria-label="Үндсэн цэс" className="pointer-events-none fixed inset-x-0 bottom-0 z-30 px-3 pb-[max(10px,env(safe-area-inset-bottom))]">
                 <div
-                    className="mx-auto grid h-16 max-w-3xl"
+                    className="pointer-events-auto mx-auto grid h-[68px] max-w-md gap-1 rounded-[26px] border border-line bg-surface p-1.5 shadow-pop"
                     style={{ gridTemplateColumns: `repeat(${primaryNavItems.length}, 1fr)` }}
                 >
                     {primaryNavItems.map((item) => {
                         const active = item.path === '#more' ? isMoreMenuOpen :
                             (item.path === '/' ? location.pathname === '/' : location.pathname.startsWith(item.path))
                         const unavailable = item.featureKeys?.every(key => !hasFeature(key))
-                        const itemClass = `relative flex flex-col items-center justify-center gap-1 transition-colors duration-150 ${FOCUS} ${
+                        const itemClass = `relative flex flex-col items-center justify-center gap-0.5 rounded-[20px] transition-colors duration-150 ${FOCUS} ${
                             unavailable ? 'text-ink-muted/40'
-                            : active ? 'text-brand-text'
+                            : active ? 'bg-surface-muted text-brand-text'
                             : 'text-ink-muted hover:text-ink'
                         }`
                         const content = (
                             <>
-                                {active && <span aria-hidden="true" className="absolute top-0 h-[3px] w-6 rounded-b-full bg-brand-text" />}
                                 <item.icon size={22} strokeWidth={active ? 2.2 : 1.9} />
-                                <span className={`text-[11.5px] ${active ? 'font-semibold' : 'font-medium'}`}>{item.name}</span>
+                                <span className={`text-[11.5px] ${active ? 'font-semibold text-ink' : 'font-medium'}`}>{item.name}</span>
                             </>
                         )
 
@@ -283,8 +290,8 @@ export default function MainLayout() {
                     ref={moreMenuRef}
                     role="dialog"
                     aria-label="Бусад цэс"
-                    className="shell-sheet fixed inset-x-0 z-20 mx-auto max-w-3xl overscroll-contain rounded-t-[20px] border-t border-line bg-surface shadow-pop"
-                    style={{ bottom: 'calc(64px + env(safe-area-inset-bottom))' }}
+                    className="shell-sheet fixed inset-x-3 z-20 mx-auto max-w-md overscroll-contain rounded-[24px] border border-line bg-surface shadow-pop"
+                    style={{ bottom: 'calc(88px + env(safe-area-inset-bottom))' }}
                 >
                     <div aria-hidden="true" className="mx-auto mb-1 mt-3 h-1 w-10 rounded-full bg-line" />
                     <div className="grid grid-cols-3 gap-2 px-4 pb-5 pt-2">
@@ -316,7 +323,7 @@ export default function MainLayout() {
                 <div
                     aria-hidden="true"
                     className="shell-fade fixed inset-x-0 top-0 z-10"
-                    style={{ bottom: 'calc(64px + env(safe-area-inset-bottom))', backgroundColor: 'var(--overlay)' }}
+                    style={{ bottom: 0, backgroundColor: 'var(--overlay)' }}
                     onClick={() => setIsMoreMenuOpen(false)}
                 ></div>
             )}
