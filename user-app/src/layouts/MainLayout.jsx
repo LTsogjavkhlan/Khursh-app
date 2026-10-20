@@ -352,6 +352,16 @@ export default function MainLayout() {
 
                 <div style={styles.headerIconsContainer}>
                     <NavLink
+                        to="/chat"
+                        className="header-icon-btn"
+                        style={styles.headerIconButton}
+                        aria-label="Чат"
+                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = colors.border; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = colors.surfaceAlt; }}
+                    >
+                        <MessageCircle size={21} color={colors.textSub} />
+                    </NavLink>
+                    <NavLink
                         to="/notifications"
                         className="header-icon-btn"
                         style={styles.headerIconButton}
