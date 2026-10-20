@@ -1,26 +1,36 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
-import { useTheme } from '../context/ThemeContext'
 import { fetchMessages, sendMessage } from '../api/chat'
 import { useChatSocket } from '../hooks/useChatSocket'
+import { useToast } from '../components/Toast'
+import Button, { FOCUS_RING } from '../components/ui/Button'
+import EmptyState from '../components/ui/EmptyState'
+import { SkeletonBlock } from '../components/ui/Skeleton'
+import { dayLabel, timeLabel } from '../utils/format'
+import { Users, SendHorizontal, MessagesSquare, Building2 } from 'lucide-react'
 
-// Header (64px) + bottom nav (80px) clearance baked into MainLayout's `main`
-// padding — this page owns its own scroll region inside that space so the
-// message list scrolls independently of the input bar and page chrome.
-const CHROME_HEIGHT = 144
+// MainLayout's `main` reserves 64px for the top bar and 104px for the floating
+// nav (plus safe areas). This page owns its own scroll region inside that
+// space so the message list scrolls independently of the composer.
+const PAGE_HEIGHT = 'calc(100dvh - 168px - env(safe-area-inset-top) - env(safe-area-inset-bottom))'
 
-const formatTime = (iso) => {
+const sameDay = (a, b) => new Date(a).toDateString() === new Date(b).toDateString()
+
+function daySeparator(iso) {
     const d = new Date(iso)
     const today = new Date()
-    const sameDay = d.toDateString() === today.toDateString()
-    return sameDay
-        ? d.toLocaleTimeString('mn-MN', { hour: '2-digit', minute: '2-digit' })
-        : d.toLocaleString('mn-MN', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+    const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1)
+    if (sameDay(d, today)) return 'Өнөөдөр'
+    if (sameDay(d, yesterday)) return 'Өчигдөр'
+    return d.getFullYear() === today.getFullYear() ? dayLabel(d) : `${d.getFullYear()} оны ${dayLabel(d)}`
 }
+
+const initialsOf = (s) => ((s?.firstName?.[0] || '') + (s?.lastName?.[0] || '')).toUpperCase() || '?'
 
 export default function GroupChat() {
     const { user } = useAuth()
-    const { colors } = useTheme()
+    const toast = useToast()
 
     const hasHoa = Boolean(user?.hoaName)
 
@@ -30,18 +40,12 @@ export default function GroupChat() {
     const [loadingOlder, setLoadingOlder] = useState(false)
     const [input, setInput] = useState('')
     const [sending, setSending] = useState(false)
-    const [toast, setToast] = useState(null)
 
     const listRef = useRef(null)
     const bottomRef = useRef(null)
     const prevScrollHeightRef = useRef(null)
     const prevCountRef = useRef(0)
     const seenIdsRef = useRef(new Set())
-
-    const showToast = (message) => {
-        setToast(message)
-        setTimeout(() => setToast(null), 3500)
-    }
 
     const appendMessage = useCallback((msg) => {
         const id = String(msg.id)
@@ -66,9 +70,10 @@ export default function GroupChat() {
                 setMessages(list)
                 setNextCursor(data?.nextCursor || null)
             })
-            .catch(() => { if (!cancelled) showToast('Мессежүүдийг ачаалахад алдаа гарлаа') })
+            .catch(() => { if (!cancelled) toast.show('Мессежүүдийг ачаалахад алдаа гарлаа') })
             .finally(() => { if (!cancelled) setLoadingInitial(false) })
         return () => { cancelled = true }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [hasHoa])
 
     const { connected } = useChatSocket(appendMessage)
@@ -77,7 +82,8 @@ export default function GroupChat() {
     // just prepended by "load older" (that effect restores the offset instead).
     useEffect(() => {
         if (messages.length > prevCountRef.current && prevScrollHeightRef.current == null) {
-            bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+            const smooth = prevCountRef.current > 0 && !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+            bottomRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'end' })
         }
         prevCountRef.current = messages.length
     }, [messages])
@@ -102,7 +108,7 @@ export default function GroupChat() {
             setNextCursor(data?.nextCursor || null)
         } catch {
             prevScrollHeightRef.current = null
-            showToast('Хуучин мессежүүдийг ачаалахад алдаа гарлаа')
+            toast.show('Хуучин мессежүүдийг ачаалахад алдаа гарлаа')
         } finally {
             setLoadingOlder(false)
         }
@@ -118,200 +124,137 @@ export default function GroupChat() {
             appendMessage(dto)
             setInput('')
         } catch (err) {
-            showToast(err.message || 'Мессеж илгээхэд алдаа гарлаа')
+            toast.show(err.message || 'Мессеж илгээхэд алдаа гарлаа')
         } finally {
             setSending(false)
         }
     }
 
-    const styles = {
-        page: {
-            display: 'flex',
-            flexDirection: 'column',
-            height: `calc(100vh - ${CHROME_HEIGHT}px)`,
-            margin: '0 -16px',
-        },
-        header: {
-            display: 'flex',
-            alignItems: 'baseline',
-            justifyContent: 'space-between',
-            padding: '12px 16px',
-            borderBottom: `1px solid ${colors.border}`,
-        },
-        title: { fontSize: '20px', fontWeight: 'bold', color: colors.text, margin: 0 },
-        status: { fontSize: '12px', color: connected ? '#16a34a' : colors.textMuted },
-        list: {
-            flex: 1,
-            overflowY: 'auto',
-            padding: '12px 16px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '10px',
-        },
-        loadOlderBtn: {
-            alignSelf: 'center',
-            padding: '6px 14px',
-            fontSize: '13px',
-            fontWeight: '500',
-            color: colors.accent,
-            backgroundColor: colors.surfaceAlt,
-            border: `1px solid ${colors.border}`,
-            borderRadius: '20px',
-            cursor: 'pointer',
-            marginBottom: '4px',
-        },
-        centered: {
-            flex: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            textAlign: 'center',
-            color: colors.textMuted,
-            fontSize: '14px',
-            padding: '0 24px',
-        },
-        bubbleRow: (mine) => ({
-            display: 'flex',
-            justifyContent: mine ? 'flex-end' : 'flex-start',
-        }),
-        bubble: (mine) => ({
-            maxWidth: '78%',
-            padding: '10px 14px',
-            borderRadius: '16px',
-            borderBottomRightRadius: mine ? '4px' : '16px',
-            borderBottomLeftRadius: mine ? '16px' : '4px',
-            backgroundColor: mine ? colors.brand : colors.surfaceAlt,
-            color: mine ? '#ffffff' : colors.text,
-        }),
-        senderName: {
-            fontSize: '12px',
-            fontWeight: '600',
-            marginBottom: '3px',
-            color: colors.accentText,
-        },
-        content: { fontSize: '15px', lineHeight: 1.4, whiteSpace: 'pre-wrap', wordBreak: 'break-word' },
-        timestamp: (mine) => ({
-            fontSize: '10px',
-            marginTop: '4px',
-            textAlign: 'right',
-            color: mine ? 'rgba(255,255,255,0.75)' : colors.textMuted,
-        }),
-        inputBar: {
-            display: 'flex',
-            gap: '8px',
-            padding: '10px 16px',
-            borderTop: `1px solid ${colors.border}`,
-            backgroundColor: colors.surface,
-        },
-        input: {
-            flex: 1,
-            padding: '10px 14px',
-            borderRadius: '20px',
-            border: `1px solid ${colors.border}`,
-            backgroundColor: colors.surfaceAlt,
-            color: colors.text,
-            fontSize: '15px',
-            outline: 'none',
-        },
-        sendButton: {
-            padding: '0 18px',
-            borderRadius: '20px',
-            border: 'none',
-            backgroundColor: colors.brand,
-            color: '#ffffff',
-            fontSize: '14px',
-            fontWeight: '600',
-            cursor: 'pointer',
-        },
-        sendButtonDisabled: { backgroundColor: '#93C5FD', cursor: 'not-allowed' },
-        toast: {
-            position: 'fixed',
-            bottom: '88px',
-            left: '16px',
-            right: '16px',
-            zIndex: 9999,
-            padding: '12px 16px',
-            borderRadius: '12px',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-            backgroundColor: '#991b1b',
-            color: 'white',
-            fontSize: '14px',
-            fontWeight: '500',
-            textAlign: 'center',
-        },
-    }
-
     if (!hasHoa) {
         return (
-            <div style={styles.page}>
-                <div style={styles.header}><h1 style={styles.title}>Чат</h1></div>
-                <div style={styles.centered}>
-                    Та одоогоор ямар нэгэн СӨХ-д харьяалагдахгүй байна. Чатыг ашиглахын тулд эхлээд СӨХ-д гишүүнээр элсэнэ үү.
-                </div>
+            <div className="pt-6">
+                <EmptyState
+                    icon={Building2}
+                    title="СӨХ-д бүртгэлгүй байна"
+                    description="Хөршийн чатыг ашиглахын тулд эхлээд СӨХ-д гишүүнээр элсэнэ үү."
+                    action={<Link to="/profile" className={`inline-flex h-9 items-center rounded-control bg-brand-soft px-3.5 text-sm font-semibold text-brand-text ${FOCUS_RING}`}>Профайл руу очих</Link>}
+                />
             </div>
         )
     }
 
-    return (
-        <div style={styles.page}>
-            <div style={styles.header}>
-                <h1 style={styles.title}>Чат</h1>
-                <span style={styles.status}>{connected ? 'Холбогдсон' : 'Холбогдож байна...'}</span>
-            </div>
+    // AuthContext's `user` starts out with `.id` (from the login/register
+    // response), but a later `/api/auth/me` refresh replaces it with the raw
+    // Mongo document, which only serializes `._id` — so check both.
+    const myId = user?.id ?? user?._id
 
-            <div ref={listRef} style={styles.list}>
+    return (
+        <div className="-mx-4 flex flex-col" style={{ height: PAGE_HEIGHT }}>
+            {/* Header */}
+            <header className="flex items-center gap-3 border-b border-line px-4 pb-3 pt-1">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand text-on-brand">
+                    <Users size={20} aria-hidden="true" />
+                </span>
+                <div className="min-w-0">
+                    <h1 className="truncate text-[17px] font-semibold text-ink">Хөршийн чат</h1>
+                    <p className="flex items-center gap-1.5 text-xs text-ink-muted" aria-live="polite">
+                        <span aria-hidden="true" className={`h-2 w-2 rounded-full ${connected ? 'bg-success-text' : 'bg-line-strong'}`} />
+                        <span className="truncate">{user.hoaName} · {connected ? 'Холбогдсон' : 'Холбогдож байна…'}</span>
+                    </p>
+                </div>
+            </header>
+
+            {/* Messages */}
+            <div ref={listRef} className="flex-1 overflow-y-auto overscroll-contain px-4 py-3" role="log" aria-label="Мессежүүд">
                 {nextCursor && (
-                    <button type="button" onClick={loadOlder} disabled={loadingOlder} style={styles.loadOlderBtn}>
-                        {loadingOlder ? 'Ачаалж байна...' : 'Хуучин мессежүүдийг харах'}
-                    </button>
+                    <div className="mb-3 flex justify-center">
+                        <Button variant="secondary" size="sm" className="rounded-full" onClick={loadOlder} loading={loadingOlder}>
+                            {loadingOlder ? 'Ачаалж байна…' : 'Хуучин мессеж харах'}
+                        </Button>
+                    </div>
                 )}
 
                 {loadingInitial ? (
-                    <div style={styles.centered}>Ачаалж байна...</div>
+                    <div className="space-y-3" aria-busy="true">
+                        <SkeletonBlock className="h-14 w-2/3 rounded-2xl" />
+                        <SkeletonBlock className="ml-auto h-10 w-1/2 rounded-2xl" />
+                        <SkeletonBlock className="h-14 w-3/5 rounded-2xl" />
+                    </div>
                 ) : messages.length === 0 ? (
-                    <div style={styles.centered}>Мессеж алга байна. Эхний мессежээ бичээрэй!</div>
+                    <EmptyState icon={MessagesSquare} title="Мессеж алга байна" description="Хөршүүддээ эхний мессежээ бичээрэй!" className="h-full justify-center" />
                 ) : (
-                    messages.map(msg => {
-                        // AuthContext's `user` starts out with `.id` (from the login/register
-                        // response), but a later `/api/auth/me` refresh replaces it with the raw
-                        // Mongo document, which only serializes `._id` (no `id` virtual) — so both
-                        // are checked here to reliably identify the current user's own messages.
-                        const myId = user?.id ?? user?._id
-                        const mine = myId != null && String(msg.sender?.id) === String(myId)
-                        const senderName = `${msg.sender?.firstName || ''} ${msg.sender?.lastName || ''}`.trim() || 'Хэрэглэгч'
-                        return (
-                            <div key={msg.id} style={styles.bubbleRow(mine)}>
-                                <div style={styles.bubble(mine)}>
-                                    {!mine && <div style={styles.senderName}>{senderName}</div>}
-                                    <div style={styles.content}>{msg.content}</div>
-                                    <div style={styles.timestamp(mine)}>{formatTime(msg.createdAt)}</div>
-                                </div>
-                            </div>
-                        )
-                    })
+                    <ol className="flex flex-col">
+                        {messages.map((msg, i) => {
+                            const prev = messages[i - 1]
+                            const newDay = !prev || !sameDay(prev.createdAt, msg.createdAt)
+                            const mine = myId != null && String(msg.sender?.id) === String(myId)
+                            // Group consecutive messages from the same sender on the same day
+                            const grouped = !newDay && prev && String(prev.sender?.id) === String(msg.sender?.id)
+                            const next = messages[i + 1]
+                            const lastInGroup = !next || String(next.sender?.id) !== String(msg.sender?.id) || !sameDay(next.createdAt, msg.createdAt)
+                            const senderName = `${msg.sender?.firstName || ''} ${msg.sender?.lastName || ''}`.trim() || 'Хэрэглэгч'
+                            return (
+                                <li key={msg.id} className={grouped ? 'mt-1' : 'mt-3 first:mt-0'}>
+                                    {newDay && (
+                                        <p className="mb-3 flex justify-center">
+                                            <span className="rounded-full bg-surface-muted px-3 py-1 text-[11px] font-semibold text-ink-muted">{daySeparator(msg.createdAt)}</span>
+                                        </p>
+                                    )}
+                                    <div className={`flex items-end gap-2 ${mine ? 'justify-end' : 'justify-start'}`}>
+                                        {!mine && (
+                                            <span aria-hidden="true" className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-soft text-[11px] font-bold text-brand-text ${lastInGroup ? '' : 'invisible'}`}>
+                                                {initialsOf(msg.sender)}
+                                            </span>
+                                        )}
+                                        <div
+                                            className={`max-w-[78%] px-3.5 py-2 ${
+                                                mine
+                                                    ? `rounded-[18px] bg-brand text-on-brand ${lastInGroup ? 'rounded-br-md' : ''}`
+                                                    : `rounded-[18px] border border-line bg-surface text-ink ${lastInGroup ? 'rounded-bl-md' : ''}`
+                                            }`}
+                                        >
+                                            {mine ? <span className="sr-only">Та: </span> : (
+                                                grouped
+                                                    ? <span className="sr-only">{senderName}: </span>
+                                                    : <p className="mb-0.5 text-xs font-semibold text-brand-text">{senderName}</p>
+                                            )}
+                                            <p className="whitespace-pre-wrap break-words text-[15px] leading-snug">{msg.content}</p>
+                                            <p className={`mt-0.5 text-right text-[10px] tabular-nums ${mine ? 'text-on-brand/70' : 'text-ink-muted'}`}>
+                                                <time dateTime={msg.createdAt}>{timeLabel(msg.createdAt)}</time>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </li>
+                            )
+                        })}
+                    </ol>
                 )}
                 <div ref={bottomRef} />
             </div>
 
-            <form onSubmit={handleSend} style={styles.inputBar}>
+            {/* Composer */}
+            <form onSubmit={handleSend} className="flex items-center gap-2 border-t border-line bg-surface px-4 py-2.5">
+                <label htmlFor="chat-input" className="sr-only">Мессеж</label>
                 <input
+                    id="chat-input"
                     type="text"
                     value={input}
                     onChange={e => setInput(e.target.value)}
-                    placeholder="Мессеж бичих..."
-                    style={styles.input}
+                    placeholder="Мессеж бичих…"
+                    autoComplete="off"
                     maxLength={2000}
+                    enterKeyHint="send"
+                    className="min-h-11 flex-1 rounded-full border border-line-strong bg-surface-muted px-4 text-[15px] text-ink placeholder:text-ink-muted focus:border-brand-text focus:outline-none focus:ring-2 focus:ring-brand-text/25"
                 />
                 <button
                     type="submit"
                     disabled={sending || !input.trim()}
-                    style={{ ...styles.sendButton, ...((sending || !input.trim()) ? styles.sendButtonDisabled : {}) }}
+                    aria-label="Илгээх"
+                    className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand text-on-brand transition-opacity hover:bg-brand-hover disabled:opacity-40 ${FOCUS_RING}`}
                 >
-                    Илгээх
+                    <SendHorizontal size={19} aria-hidden="true" />
                 </button>
             </form>
-
-            {toast && <div style={styles.toast}>{toast}</div>}
         </div>
     )
 }
