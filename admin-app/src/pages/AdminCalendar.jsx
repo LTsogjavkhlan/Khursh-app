@@ -1,28 +1,60 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { apiRequest } from '../api/client'
 import { useToast } from '../components/ui/Toast'
 import PageHeader from '../components/ui/PageHeader'
-import Card from '../components/ui/Card'
-import Button from '../components/ui/Button'
+import Button, { FOCUS_RING } from '../components/ui/Button'
 import EmptyState from '../components/ui/EmptyState'
 import Skeleton from '../components/ui/Skeleton'
+import Modal from '../components/ui/Modal'
+import FilterTabs from '../components/ui/FilterTabs'
 import FormField, { fieldInputCls } from '../components/ui/FormField'
+import { Plus, Pencil, Trash2, Clock, MapPin, CalendarDays } from 'lucide-react'
 
 const emptyForm = { title: '', description: '', date: '', time: '', location: '' }
+const WEEKDAYS = ['Ням', 'Даваа', 'Мягмар', 'Лхагва', 'Пүрэв', 'Баасан', 'Бямба']
+
+// Event dates are stored as midnight UTC; read the calendar day from the ISO
+// string so the day never shifts with the viewer's timezone.
+const dayParts = (iso) => {
+  const [y, m, d] = String(iso).slice(0, 10).split('-').map(Number)
+  return { y, m, d, weekday: WEEKDAYS[new Date(y, m - 1, d).getDay()] }
+}
+const todayKey = () => {
+  const t = new Date()
+  return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`
+}
+
+function IconAction({ label, onClick, disabled, danger, children }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      title={label}
+      className={`w-9 h-9 flex items-center justify-center rounded-full text-ink-muted transition-colors disabled:opacity-50 ${FOCUS_RING} ${
+        danger ? 'hover:bg-danger-bg hover:text-danger-text' : 'hover:bg-surface-muted hover:text-ink'
+      }`}
+    >
+      {children}
+    </button>
+  )
+}
 
 export default function AdminCalendar() {
   const toast = useToast()
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [tab, setTab] = useState('upcoming')
   const [form, setForm] = useState(emptyForm)
+  const [dialogOpen, setDialogOpen] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [saving, setSaving] = useState(false)
   const [busyId, setBusyId] = useState(null)
 
   async function load() {
     try {
-      setLoading(true)
       setError(null)
       const data = await apiRequest('/api/events')
       setEvents(Array.isArray(data) ? data : [])
@@ -35,6 +67,12 @@ export default function AdminCalendar() {
 
   useEffect(() => { load() }, [])
 
+  function openCreate() {
+    setEditingId(null)
+    setForm(emptyForm)
+    setDialogOpen(true)
+  }
+
   function startEdit(ev) {
     setEditingId(ev._id)
     setForm({
@@ -44,9 +82,11 @@ export default function AdminCalendar() {
       time: ev.time || '',
       location: ev.location || '',
     })
+    setDialogOpen(true)
   }
 
-  function cancelEdit() {
+  function closeDialog() {
+    setDialogOpen(false)
     setEditingId(null)
     setForm(emptyForm)
   }
@@ -62,7 +102,7 @@ export default function AdminCalendar() {
         await apiRequest('/api/events', { method: 'POST', body: JSON.stringify(form) })
       }
       toast.success(editingId ? 'Арга хэмжээ шинэчлэгдлээ' : 'Арга хэмжээ нэмэгдлээ')
-      cancelEdit()
+      closeDialog()
       await load()
     } catch (err) {
       toast.error(err.message || 'Хадгалахад алдаа гарлаа.')
@@ -71,11 +111,11 @@ export default function AdminCalendar() {
     }
   }
 
-  async function removeEvent(id) {
-    if (!window.confirm('Энэ арга хэмжээг устгах уу?')) return
+  async function removeEvent(ev) {
+    if (!window.confirm(`«${ev.title}» арга хэмжээг устгах уу?`)) return
     try {
-      setBusyId(id)
-      await apiRequest(`/api/events/${id}`, { method: 'DELETE' })
+      setBusyId(ev._id)
+      await apiRequest(`/api/events/${ev._id}`, { method: 'DELETE' })
       toast.success('Арга хэмжээ устгагдлаа')
       await load()
     } catch (err) {
@@ -85,67 +125,118 @@ export default function AdminCalendar() {
     }
   }
 
+  const { upcoming, past } = useMemo(() => {
+    const today = todayKey()
+    const sorted = [...events].sort((a, b) => String(a.date).localeCompare(String(b.date)) || String(a.time || '').localeCompare(String(b.time || '')))
+    return {
+      upcoming: sorted.filter(e => String(e.date).slice(0, 10) >= today),
+      past: sorted.filter(e => String(e.date).slice(0, 10) < today).reverse(),
+    }
+  }, [events])
+
+  const list = tab === 'upcoming' ? upcoming : past
+
   return (
-    <div className="space-y-6 max-w-3xl">
-      <PageHeader title="Хуанли" subtitle="СӨХ-ийн арга хэмжээ, уулзалтын мэдээлэл." />
+    <div className="space-y-6 max-w-4xl">
+      <PageHeader
+        title="Хуанли"
+        subtitle="СӨХ-ийн арга хэмжээ, уулзалтын мэдээлэл. Оршин суугчдын аппын хуанлид харагдана."
+        action={<Button onClick={openCreate}><Plus className="w-4 h-4" aria-hidden="true" /> Арга хэмжээ нэмэх</Button>}
+      />
 
-      <form onSubmit={handleSubmit} className="bg-surface border border-line rounded-2xl shadow-sm p-5 space-y-3">
-        <h2 className="text-sm font-semibold text-ink">{editingId ? 'Арга хэмжээ засах' : 'Шинэ арга хэмжээ'}</h2>
-        <FormField label="Гарчиг">
-          <input className={fieldInputCls} placeholder="Гарчиг" value={form.title} maxLength={200}
-            onChange={e => setForm(f => ({ ...f, title: e.target.value }))} required />
-        </FormField>
-        <FormField label="Тайлбар">
-          <textarea className={fieldInputCls} rows={2} placeholder="Тайлбар" value={form.description}
-            onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
-        </FormField>
-        <div className="grid grid-cols-2 gap-3">
-          <FormField label="Огноо">
-            <input type="date" className={fieldInputCls} value={form.date}
-              onChange={e => setForm(f => ({ ...f, date: e.target.value }))} required />
-          </FormField>
-          <FormField label="Цаг">
-            <input type="time" className={fieldInputCls} value={form.time}
-              onChange={e => setForm(f => ({ ...f, time: e.target.value }))} />
-          </FormField>
-        </div>
-        <FormField label="Байршил">
-          <input className={fieldInputCls} placeholder="Байршил" value={form.location}
-            onChange={e => setForm(f => ({ ...f, location: e.target.value }))} />
-        </FormField>
-        <div className="flex gap-2">
-          <Button type="submit" loading={saving} disabled={!form.title.trim() || !form.date} className="flex-1">
-            {editingId ? 'Хадгалах' : 'Нэмэх'}
-          </Button>
-          {editingId && <Button type="button" variant="secondary" onClick={cancelEdit}>Цуцлах</Button>}
-        </div>
-      </form>
-
-      {error && <div className="rounded-xl bg-danger-bg border border-danger-bg px-4 py-3 text-sm text-danger-text">{error}</div>}
+      {error && <p role="alert" className="rounded-xl bg-danger-bg px-4 py-3 text-sm text-danger-text">{error}</p>}
 
       {loading ? (
         <Skeleton.List rows={3} />
-      ) : events.length === 0 ? (
-        <EmptyState title="Арга хэмжээ алга." />
       ) : (
-        <ul className="space-y-3">
-          {events.map(ev => (
-            <Card key={ev._id} className="px-5 py-4 flex items-start justify-between gap-4">
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-ink">{ev.title}</p>
-                <p className="text-xs text-ink-muted mt-0.5">
-                  {ev.date ? new Date(ev.date).toLocaleDateString('mn-MN') : ''} {ev.time ? `· ${ev.time}` : ''} {ev.location ? `· ${ev.location}` : ''}
-                </p>
-                {ev.description && <p className="text-sm text-ink-secondary mt-1">{ev.description}</p>}
-              </div>
-              <div className="flex gap-2 flex-shrink-0">
-                <Button variant="secondary" size="sm" onClick={() => startEdit(ev)}>Засах</Button>
-                <Button variant="danger" size="sm" disabled={busyId === ev._id} onClick={() => removeEvent(ev._id)}>Устгах</Button>
-              </div>
-            </Card>
-          ))}
-        </ul>
+        <section className="bg-surface border border-line rounded-card shadow-card" aria-label="Арга хэмжээний жагсаалт">
+          <div className="p-4 border-b border-line">
+            <FilterTabs
+              label="Хугацаагаар шүүх"
+              value={tab}
+              onChange={setTab}
+              tabs={[
+                { id: 'upcoming', label: 'Удахгүй болох', count: upcoming.length },
+                { id: 'past', label: 'Өнгөрсөн', count: past.length },
+              ]}
+            />
+          </div>
+
+          {list.length === 0 ? (
+            <div className="p-4">
+              <EmptyState
+                icon={<CalendarDays className="w-5 h-5" />}
+                title={tab === 'upcoming' ? 'Удахгүй болох арга хэмжээ алга.' : 'Өнгөрсөн арга хэмжээ алга.'}
+                action={tab === 'upcoming' && <Button variant="secondary" size="sm" onClick={openCreate}><Plus className="w-4 h-4" aria-hidden="true" /> Арга хэмжээ нэмэх</Button>}
+              />
+            </div>
+          ) : (
+            <ul className="divide-y divide-line">
+              {list.map(ev => {
+                const p = ev.date ? dayParts(ev.date) : null
+                return (
+                  <li key={ev._id} className={`flex items-start gap-4 px-5 py-4 ${tab === 'past' ? 'opacity-75' : ''}`}>
+                    {p && (
+                      <span className="w-14 shrink-0 rounded-[10px] bg-brand-soft text-brand-text text-center py-1.5">
+                        <span className="block text-[11px] font-semibold">{p.m}-р сар</span>
+                        <span className="block text-xl font-bold leading-tight tabular-nums">{p.d}</span>
+                        <span className="block text-[10px] font-medium">{p.weekday}</span>
+                      </span>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[15px] font-semibold text-ink">{ev.title}</p>
+                      {(ev.time || ev.location) && (
+                        <p className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-muted">
+                          {ev.time && <span className="inline-flex items-center gap-1"><Clock className="w-3.5 h-3.5" aria-hidden="true" />{ev.time}</span>}
+                          {ev.location && <span className="inline-flex items-center gap-1"><MapPin className="w-3.5 h-3.5" aria-hidden="true" />{ev.location}</span>}
+                        </p>
+                      )}
+                      {ev.description && <p className="mt-1.5 text-sm text-ink-secondary leading-relaxed">{ev.description}</p>}
+                    </div>
+                    <div className="flex shrink-0 -mr-2">
+                      <IconAction label={`«${ev.title}» засах`} onClick={() => startEdit(ev)}><Pencil className="w-4 h-4" aria-hidden="true" /></IconAction>
+                      <IconAction label={`«${ev.title}» устгах`} danger disabled={busyId === ev._id} onClick={() => removeEvent(ev)}><Trash2 className="w-4 h-4" aria-hidden="true" /></IconAction>
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </section>
       )}
+
+      <Modal open={dialogOpen} onClose={closeDialog} title={editingId ? 'Арга хэмжээ засах' : 'Шинэ арга хэмжээ'}>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <FormField label="Гарчиг">
+            <input className={fieldInputCls} placeholder="Жишээ: Оршин суугчдын хурал…" value={form.title} maxLength={200} autoComplete="off"
+              onChange={e => setForm(f => ({ ...f, title: e.target.value }))} required />
+          </FormField>
+          <div className="grid grid-cols-2 gap-3">
+            <FormField label="Огноо">
+              <input type="date" className={fieldInputCls} value={form.date}
+                onChange={e => setForm(f => ({ ...f, date: e.target.value }))} required />
+            </FormField>
+            <FormField label="Цаг (заавал биш)">
+              <input type="time" className={fieldInputCls} value={form.time}
+                onChange={e => setForm(f => ({ ...f, time: e.target.value }))} />
+            </FormField>
+          </div>
+          <FormField label="Байршил (заавал биш)">
+            <input className={fieldInputCls} placeholder="Жишээ: 1-р давхрын заал…" value={form.location} autoComplete="off"
+              onChange={e => setForm(f => ({ ...f, location: e.target.value }))} />
+          </FormField>
+          <FormField label="Тайлбар (заавал биш)">
+            <textarea className={fieldInputCls} rows={3} value={form.description}
+              onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
+          </FormField>
+          <div className="flex justify-end gap-2 pt-1">
+            <Button type="button" variant="secondary" onClick={closeDialog}>Болих</Button>
+            <Button type="submit" loading={saving} disabled={!form.title.trim() || !form.date}>
+              {editingId ? 'Хадгалах' : 'Нэмэх'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   )
 }
