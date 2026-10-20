@@ -5,16 +5,23 @@ import { useChatSocket } from '../hooks/useChatSocket'
 import { useToast } from '../components/ui/Toast'
 import PageHeader from '../components/ui/PageHeader'
 import EmptyState from '../components/ui/EmptyState'
-import Button from '../components/ui/Button'
+import Button, { FOCUS_RING } from '../components/ui/Button'
+import Skeleton from '../components/ui/Skeleton'
+import { Users, SendHorizontal, MessagesSquare } from 'lucide-react'
 
-const formatTime = (iso) => {
+// Chrome lacks Mongolian Intl data (times came out as "07:38 PM"), so build them
+const pad = (n) => String(n).padStart(2, '0')
+const timeOf = (iso) => { const d = new Date(iso); return `${pad(d.getHours())}:${pad(d.getMinutes())}` }
+const sameDay = (a, b) => new Date(a).toDateString() === new Date(b).toDateString()
+const daySeparator = (iso) => {
     const d = new Date(iso)
     const today = new Date()
-    const sameDay = d.toDateString() === today.toDateString()
-    return sameDay
-        ? d.toLocaleTimeString('mn-MN', { hour: '2-digit', minute: '2-digit' })
-        : d.toLocaleString('mn-MN', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+    const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1)
+    if (sameDay(d, today)) return 'Өнөөдөр'
+    if (sameDay(d, yesterday)) return 'Өчигдөр'
+    return `${d.getFullYear() !== today.getFullYear() ? `${d.getFullYear()} оны ` : ''}${d.getMonth() + 1}-р сарын ${d.getDate()}`
 }
+const initialsOf = (s) => ((s?.firstName?.[0] || '') + (s?.lastName?.[0] || '')).toUpperCase() || '?'
 
 export default function GroupChat() {
     const { user } = useAuth()
@@ -69,7 +76,8 @@ export default function GroupChat() {
     // just prepended by "load older" (that effect restores the offset instead).
     useEffect(() => {
         if (messages.length > prevCountRef.current && prevScrollHeightRef.current == null) {
-            bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+            const smooth = prevCountRef.current > 0 && !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+            bottomRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'end' })
         }
         prevCountRef.current = messages.length
     }, [messages])
@@ -120,76 +128,114 @@ export default function GroupChat() {
         return (
             <div className="space-y-6 max-w-3xl">
                 <PageHeader title="Чат" />
-                <EmptyState title="Та одоогоор ямар нэгэн СӨХ-д харьяалагдахгүй байна. Чатыг ашиглахын тулд эхлээд СӨХ-д гишүүнээр элсэнэ үү." />
+                <EmptyState icon={<MessagesSquare className="w-5 h-5" />} title="Та одоогоор ямар нэгэн СӨХ-д харьяалагдахгүй байна. Чатыг ашиглахын тулд эхлээд СӨХ-д гишүүнээр элсэнэ үү." />
             </div>
         )
     }
 
-    return (
-        <div className="max-w-3xl h-[75vh] flex flex-col bg-surface border border-line rounded-2xl shadow-sm overflow-hidden">
-            <div className="flex items-baseline justify-between px-5 py-4 border-b border-line flex-shrink-0">
-                <h1 className="text-lg font-bold text-ink">Чат</h1>
-                <span className={`text-xs font-medium flex items-center gap-1.5 ${connected ? 'text-success-text' : 'text-ink-muted'}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-success-text' : 'bg-line-strong'}`} />
-                    {connected ? 'Холбогдсон' : 'Холбогдож байна...'}
-                </span>
-            </div>
+    // AuthContext's `user` starts out with `.id` (from the login/register
+    // response), but a later `/api/auth/me` refresh replaces it with the raw
+    // Mongo document, which only serializes `._id` — so check both.
+    const myId = user?.id ?? user?._id
 
-            <div ref={listRef} className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-2.5">
+    return (
+        <div className="max-w-4xl h-[calc(100dvh-10rem)] min-h-[420px] flex flex-col bg-surface border border-line rounded-card shadow-card overflow-hidden">
+            <header className="flex items-center gap-3 px-5 py-3.5 border-b border-line shrink-0">
+                <span className="w-10 h-10 rounded-full bg-brand text-on-brand flex items-center justify-center shrink-0">
+                    <Users className="w-5 h-5" aria-hidden="true" />
+                </span>
+                <div className="min-w-0">
+                    <h1 className="text-[15px] font-semibold text-ink">Хөршийн чат</h1>
+                    <p className="flex items-center gap-1.5 text-xs text-ink-muted" aria-live="polite">
+                        <span aria-hidden="true" className={`w-2 h-2 rounded-full ${connected ? 'bg-success-text' : 'bg-line-strong'}`} />
+                        <span className="truncate">{user.hoaName} · {connected ? 'Холбогдсон' : 'Холбогдож байна…'}</span>
+                    </p>
+                </div>
+            </header>
+
+            <div ref={listRef} className="flex-1 overflow-y-auto overscroll-contain px-5 py-4 bg-canvas/50" role="log" aria-label="Мессежүүд">
                 {nextCursor && (
-                    <button
-                        type="button"
-                        onClick={loadOlder}
-                        disabled={loadingOlder}
-                        className="self-center mb-2 text-xs font-medium text-brand-text bg-surface-muted border border-line rounded-full px-3.5 py-1.5 hover:bg-surface-muted transition-colors duration-150 disabled:opacity-50"
-                    >
-                        {loadingOlder ? 'Ачаалж байна...' : 'Хуучин мессежүүдийг харах'}
-                    </button>
+                    <div className="mb-3 flex justify-center">
+                        <Button variant="secondary" size="sm" className="rounded-full" onClick={loadOlder} loading={loadingOlder}>
+                            {loadingOlder ? 'Ачаалж байна…' : 'Хуучин мессеж харах'}
+                        </Button>
+                    </div>
                 )}
 
                 {loadingInitial ? (
-                    <div className="flex-1 flex items-center justify-center text-sm text-ink-muted">Ачаалж байна...</div>
+                    <div className="space-y-3" aria-busy="true">
+                        <Skeleton.Line className="h-12 w-1/2 rounded-2xl" />
+                        <Skeleton.Line className="ml-auto h-10 w-1/3 rounded-2xl" />
+                        <Skeleton.Line className="h-12 w-2/5 rounded-2xl" />
+                    </div>
                 ) : messages.length === 0 ? (
-                    <div className="flex-1 flex items-center justify-center text-center text-sm text-ink-muted px-6">
-                        Мессеж алга байна. Эхний мессежээ бичээрэй!
+                    <div className="h-full flex flex-col items-center justify-center text-center text-sm text-ink-muted px-6">
+                        <MessagesSquare className="w-6 h-6 mb-2" aria-hidden="true" />
+                        Мессеж алга байна. Оршин суугчиддаа эхний мессежээ бичээрэй!
                     </div>
                 ) : (
-                    messages.map(msg => {
-                        // AuthContext's `user` starts out with `.id` (from the login/register
-                        // response), but a later `/api/auth/me` refresh replaces it with the raw
-                        // Mongo document, which only serializes `._id` (no `id` virtual) — so both
-                        // are checked here to reliably identify the current user's own messages.
-                        const myId = user?.id ?? user?._id
-                        const mine = myId != null && String(msg.sender?.id) === String(myId)
-                        const senderName = `${msg.sender?.firstName || ''} ${msg.sender?.lastName || ''}`.trim() || 'Хэрэглэгч'
-                        return (
-                            <div key={msg.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`max-w-[78%] px-3.5 py-2.5 rounded-2xl ${
-                                    mine ? 'bg-brand text-on-brand rounded-br-md' : 'bg-surface-muted text-ink rounded-bl-md'
-                                }`}>
-                                    {!mine && <p className="text-xs font-semibold text-brand-text mb-0.5">{senderName}</p>}
-                                    <p className="text-sm leading-snug whitespace-pre-wrap break-words">{msg.content}</p>
-                                    <p className={`text-[10px] mt-1 text-right ${mine ? 'text-white/75' : 'text-ink-muted'}`}>{formatTime(msg.createdAt)}</p>
-                                </div>
-                            </div>
-                        )
-                    })
+                    <ol className="flex flex-col">
+                        {messages.map((msg, i) => {
+                            const prev = messages[i - 1]
+                            const next = messages[i + 1]
+                            const newDay = !prev || !sameDay(prev.createdAt, msg.createdAt)
+                            const mine = myId != null && String(msg.sender?.id) === String(myId)
+                            const grouped = !newDay && String(prev.sender?.id) === String(msg.sender?.id)
+                            const lastInGroup = !next || String(next.sender?.id) !== String(msg.sender?.id) || !sameDay(next.createdAt, msg.createdAt)
+                            const senderName = `${msg.sender?.firstName || ''} ${msg.sender?.lastName || ''}`.trim() || 'Хэрэглэгч'
+                            return (
+                                <li key={msg.id} className={grouped ? 'mt-1' : 'mt-3 first:mt-0'}>
+                                    {newDay && (
+                                        <p className="mb-3 flex justify-center">
+                                            <span className="rounded-full bg-surface-muted px-3 py-1 text-[11px] font-semibold text-ink-muted">{daySeparator(msg.createdAt)}</span>
+                                        </p>
+                                    )}
+                                    <div className={`flex items-end gap-2 ${mine ? 'justify-end' : 'justify-start'}`}>
+                                        {!mine && (
+                                            <span aria-hidden="true" className={`w-8 h-8 rounded-full bg-brand-soft text-brand-text text-[11px] font-bold flex items-center justify-center shrink-0 ${lastInGroup ? '' : 'invisible'}`}>
+                                                {initialsOf(msg.sender)}
+                                            </span>
+                                        )}
+                                        <div className={`max-w-[70%] px-3.5 py-2 rounded-[18px] ${
+                                            mine ? `bg-brand text-on-brand ${lastInGroup ? 'rounded-br-md' : ''}` : `bg-surface border border-line text-ink ${lastInGroup ? 'rounded-bl-md' : ''}`
+                                        }`}>
+                                            {mine ? <span className="sr-only">Та: </span> : grouped
+                                                ? <span className="sr-only">{senderName}: </span>
+                                                : <p className="text-xs font-semibold text-brand-text mb-0.5">{senderName}</p>}
+                                            <p className="text-sm leading-snug whitespace-pre-wrap break-words">{msg.content}</p>
+                                            <p className={`text-[10px] mt-0.5 text-right tabular-nums ${mine ? 'text-white/70' : 'text-ink-muted'}`}>
+                                                <time dateTime={msg.createdAt}>{timeOf(msg.createdAt)}</time>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </li>
+                            )
+                        })}
+                    </ol>
                 )}
                 <div ref={bottomRef} />
             </div>
 
-            <form onSubmit={handleSend} className="flex gap-2 px-4 py-3 border-t border-line flex-shrink-0">
+            <form onSubmit={handleSend} className="flex items-center gap-2 px-4 py-3 border-t border-line shrink-0">
+                <label htmlFor="admin-chat-input" className="sr-only">Мессеж</label>
                 <input
+                    id="admin-chat-input"
                     type="text"
                     value={input}
                     onChange={e => setInput(e.target.value)}
-                    placeholder="Мессеж бичих..."
+                    placeholder="Мессеж бичих…"
+                    autoComplete="off"
                     maxLength={2000}
-                    className="flex-1 rounded-full border border-line bg-surface-muted px-4 py-2.5 text-sm outline-none transition-colors focus:ring-2 focus:ring-brand focus:border-brand focus:bg-surface"
+                    className="flex-1 h-10 rounded-full border border-line-strong bg-surface-muted px-4 text-sm text-ink placeholder:text-ink-muted outline-none transition-colors focus:ring-2 focus:ring-brand/30 focus:border-brand focus:bg-surface"
                 />
-                <Button type="submit" disabled={sending || !input.trim()}>
-                    Илгээх
-                </Button>
+                <button
+                    type="submit"
+                    disabled={sending || !input.trim()}
+                    aria-label="Илгээх"
+                    className={`w-10 h-10 shrink-0 rounded-full bg-brand text-on-brand flex items-center justify-center transition-opacity hover:bg-brand-hover disabled:opacity-40 ${FOCUS_RING}`}
+                >
+                    <SendHorizontal className="w-[18px] h-[18px]" aria-hidden="true" />
+                </button>
             </form>
         </div>
     )
