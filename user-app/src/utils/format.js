@@ -16,3 +16,18 @@ export const fullDate = (d) => { const x = asDate(d); return `${x.getFullYear()}
 export const monthLabel = (ym) => { const [y, m] = String(ym).split('-').map(Number); return `${y} оны ${m}-р сар` }
 // "14:05"
 export const timeLabel = (d) => { const x = asDate(d); return `${String(x.getHours()).padStart(2, '0')}:${String(x.getMinutes()).padStart(2, '0')}` }
+
+// "Дөнгөж сая", "5 минутын өмнө", "3 цагийн өмнө", "Өчигдөр", "4 өдрийн өмнө",
+// then the calendar date for anything older than a week
+export const relativeTime = (d) => {
+    const x = asDate(d)
+    const mins = Math.floor((Date.now() - x) / 60000)
+    if (mins < 1) return 'Дөнгөж сая'
+    if (mins < 60) return `${mins} минутын өмнө`
+    const hours = Math.floor(mins / 60)
+    if (hours < 24) return `${hours} цагийн өмнө`
+    const days = Math.floor(hours / 24)
+    if (days === 1) return 'Өчигдөр'
+    if (days < 7) return `${days} өдрийн өмнө`
+    return fullDate(x)
+}

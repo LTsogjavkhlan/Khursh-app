@@ -1,22 +1,16 @@
 import { useEffect, useState } from 'react'
 import { apiRequest } from '../api/client'
-import { useTheme } from '../context/ThemeContext'
-
-function timeAgo(dateStr) {
-    const d = new Date(dateStr)
-    const diff = Math.floor((Date.now() - d) / 1000)
-    if (diff < 60) return 'Дөнгөж сая'
-    if (diff < 3600) return `${Math.floor(diff / 60)} мин өмнө`
-    if (diff < 86400) return `${Math.floor(diff / 3600)} цаг өмнө`
-    if (diff < 86400 * 7) return `${Math.floor(diff / 86400)} өдөр өмнө`
-    return new Date(dateStr).toLocaleDateString('mn-MN', { year: 'numeric', month: 'short', day: 'numeric' })
-}
+import PageHeader from '../components/ui/PageHeader'
+import Card from '../components/ui/Card'
+import EmptyState from '../components/ui/EmptyState'
+import { SkeletonBlock } from '../components/ui/Skeleton'
+import { relativeTime } from '../utils/format'
+import { Megaphone, AlertCircle } from 'lucide-react'
 
 export default function Announcements() {
     const [announcements, setAnnouncements] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
-    const { colors } = useTheme()
 
     useEffect(() => {
         let isMounted = true
@@ -40,122 +34,39 @@ export default function Announcements() {
     }, [])
 
     return (
-        <div style={{ paddingTop: 24, paddingBottom: 40 }}>
-            {/* Header */}
-            <div style={{ marginBottom: 20 }}>
-                <h1 style={{ fontSize: 22, fontWeight: 700, color: colors.text, margin: 0 }}>
-                    Зарлал
-                </h1>
-                <p style={{ fontSize: 14, color: colors.textSecondary, marginTop: 4 }}>
-                    СӨХ-ийн зарлал, мэдэгдлүүд
-                </p>
-            </div>
+        <div className="pb-4 pt-2">
+            <PageHeader title="Зарлал" description="СӨХ-ийн зарлал, мэдээлэл" />
 
-            {/* Loading */}
-            {loading && (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 60, gap: 12 }}>
-                    <div style={{
-                        width: 32, height: 32, borderRadius: '50%',
-                        border: `3px solid ${colors.border}`,
-                        borderTopColor: colors.primary,
-                        animation: 'spin 0.8s linear infinite'
-                    }} />
-                    <p style={{ fontSize: 14, color: colors.textSecondary }}>Уншиж байна...</p>
-                    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            {loading ? (
+                <div className="space-y-3">
+                    <SkeletonBlock className="h-32 rounded-card" />
+                    <SkeletonBlock className="h-32 rounded-card" />
                 </div>
-            )}
-
-            {/* Error */}
-            {error && (
-                <div style={{
-                    padding: '14px 16px', borderRadius: 12, marginTop: 8,
-                    background: '#fef2f2', border: '1px solid #fecaca',
-                    color: '#dc2626', fontSize: 14
-                }}>
-                    {error}
-                </div>
-            )}
-
-            {/* Empty */}
-            {!loading && !error && announcements.length === 0 && (
-                <div style={{
-                    display: 'flex', flexDirection: 'column', alignItems: 'center',
-                    paddingTop: 80, gap: 10
-                }}>
-                    <div style={{ fontSize: 48, opacity: 0.4 }}>📣</div>
-                    <p style={{ fontSize: 15, fontWeight: 600, color: colors.textSecondary, margin: 0 }}>
-                        Одоогоор зарлал байхгүй
-                    </p>
-                    <p style={{ fontSize: 13, color: colors.textSecondary, margin: 0, opacity: 0.7 }}>
-                        Шинэ зарлал гарахад энд харагдана
-                    </p>
-                </div>
-            )}
-
-            {/* List */}
-            {!loading && !error && announcements.length > 0 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    {announcements.map((item) => (
-                        <AnnouncementCard key={item._id || item.id} item={item} colors={colors} />
+            ) : error ? (
+                <Card><EmptyState tone="error" icon={AlertCircle} title="Зарлал ачаалж чадсангүй" description={error} className="py-6" /></Card>
+            ) : announcements.length === 0 ? (
+                <Card><EmptyState icon={Megaphone} title="Одоогоор зарлал алга" description="Шинэ зарлал гарахад энд харагдана." className="py-6" /></Card>
+            ) : (
+                <ul className="space-y-3">
+                    {announcements.map(item => (
+                        <li key={item._id || item.id}>
+                            <Card as="article">
+                                <div className="mb-3 flex items-center justify-between gap-3">
+                                    <span className="inline-flex items-center gap-2">
+                                        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-soft text-brand-text">
+                                            <Megaphone size={17} aria-hidden="true" />
+                                        </span>
+                                        <span className="text-xs font-semibold uppercase tracking-wide text-brand-text">Зарлал</span>
+                                    </span>
+                                    {item.createdAt && <time dateTime={item.createdAt} className="text-xs text-ink-muted">{relativeTime(item.createdAt)}</time>}
+                                </div>
+                                <h2 className="text-base font-semibold leading-snug text-ink text-balance">{item.title}</h2>
+                                <p className="mt-1.5 whitespace-pre-wrap text-sm leading-relaxed text-ink-secondary">{item.content}</p>
+                            </Card>
+                        </li>
                     ))}
-                </div>
+                </ul>
             )}
-        </div>
-    )
-}
-
-function AnnouncementCard({ item, colors }) {
-    return (
-        <div style={{
-            background: colors.card,
-            border: `1px solid ${colors.border}`,
-            borderRadius: 16,
-            padding: '16px 18px',
-            boxShadow: '0 1px 4px rgba(0,0,0,0.06)'
-        }}>
-            {/* Top row: icon + time */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                <div style={{
-                    display: 'flex', alignItems: 'center', gap: 8
-                }}>
-                    <div style={{
-                        width: 36, height: 36, borderRadius: 10,
-                        background: colors.accentBg,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 18, flexShrink: 0
-                    }}>
-                        📢
-                    </div>
-                    <span style={{
-                        fontSize: 11, fontWeight: 600, color: colors.primary,
-                        background: colors.accentBg,
-                        padding: '2px 8px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: '0.04em'
-                    }}>
-                        Зарлал
-                    </span>
-                </div>
-                {item.createdAt && (
-                    <span style={{ fontSize: 12, color: colors.textSecondary }}>
-                        {timeAgo(item.createdAt)}
-                    </span>
-                )}
-            </div>
-
-            {/* Title */}
-            <h2 style={{
-                fontSize: 15, fontWeight: 700, color: colors.text,
-                margin: '0 0 6px 0', lineHeight: 1.4
-            }}>
-                {item.title}
-            </h2>
-
-            {/* Content */}
-            <p style={{
-                fontSize: 14, color: colors.textSecondary,
-                margin: 0, lineHeight: 1.6, whiteSpace: 'pre-wrap'
-            }}>
-                {item.content}
-            </p>
         </div>
     )
 }
