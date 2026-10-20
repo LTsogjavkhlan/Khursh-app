@@ -20,7 +20,7 @@ function Delta({ text, direction, good }) {
 // calm and let the numbers carry the emphasis.
 export default function StatCard({ label, value, icon, hint, delta }) {
   return (
-    <div className="bg-surface border border-line rounded-card shadow-card p-5 flex flex-col gap-3 min-w-0">
+    <div className="bg-surface border border-line rounded-card shadow-card p-4 sm:p-5 flex flex-col gap-3 min-w-0">
       <div className="flex items-start justify-between gap-3">
         <p className="text-sm font-medium text-ink-muted">{label}</p>
         {icon && (
@@ -29,7 +29,7 @@ export default function StatCard({ label, value, icon, hint, delta }) {
           </span>
         )}
       </div>
-      <p className="text-[28px] leading-none font-semibold tracking-tight text-ink truncate">{value}</p>
+      <p className="text-[22px] sm:text-[28px] leading-none font-semibold tracking-tight text-ink truncate">{value}</p>
       {(delta || hint) && (
         <div className="flex items-center gap-2 flex-wrap text-xs text-ink-muted">
           {delta && <Delta {...delta} />}

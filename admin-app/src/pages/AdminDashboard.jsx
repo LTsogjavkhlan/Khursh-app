@@ -90,7 +90,7 @@ export default function AdminDashboard() {
 
       {loading ? (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
             {Array.from({ length: 4 }).map((_, i) => <Skeleton.Card key={i} />)}
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -102,7 +102,7 @@ export default function AdminDashboard() {
       ) : (
         <>
           {/* KPI row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
             <StatCard
               label={current ? `${formatMonthOf(current.month)} цуглуулалт` : 'Энэ сарын цуглуулалт'}
               value={formatMoney(current?.collected)}
