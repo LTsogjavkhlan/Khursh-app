@@ -5,6 +5,10 @@ import { submitFeedback, fetchMyFeedback } from '../api/feedback'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useTheme } from '../context/ThemeContext'
 import { ImagePlus, Check, AlertCircle } from 'lucide-react'
+import { resizeImage } from '../utils/imageResize'
+
+const MAX_IMAGES = 3
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024
 
 const STATUS_LABELS = { open: 'Нээлттэй', in_progress: 'Ажиллаж байна', resolved: 'Шийдэгдсэн' }
 const STATUS_COLORS = { open: { bg: '#fef3c7', color: '#92400e' }, in_progress: { bg: '#dbeafe', color: '#1e40af' }, resolved: { bg: '#d1fae5', color: '#065f46' } }
@@ -22,6 +26,7 @@ export default function Feedback() {
     const [selectedCategory, setSelectedCategory] = useState('Гомдол')
     const [feedbackText, setFeedbackText] = useState('')
     const [images, setImages] = useState([])
+    const [preparingImages, setPreparingImages] = useState(false)
     const [submitting, setSubmitting] = useState(false)
     const [toast, setToast] = useState(null) // { message, type: 'success' | 'error' }
     const [myFeedback, setMyFeedback] = useState([])
@@ -65,22 +70,49 @@ export default function Feedback() {
         })
     }, [])
 
-    // Handle image upload
-    const handleImageUpload = (e) => {
-        if (e.target.files && e.target.files.length > 0) {
-            const newImages = Array.from(e.target.files).map(file => ({
-                id: Date.now() + Math.random().toString(36).substring(7),
-                file,
-                preview: URL.createObjectURL(file)
-            }))
-            setImages([...images, ...newImages])
+    // Free preview URLs when the page unmounts
+    const imagesRef = useRef(images)
+    imagesRef.current = images
+    useEffect(() => () => imagesRef.current.forEach(img => URL.revokeObjectURL(img.preview)), [])
+
+    // Add photos: shrink each on the device first, then enforce the limits
+    const handleImageUpload = async (e) => {
+        const input = e.target
+        const picked = Array.from(input.files || [])
+        input.value = '' // allow picking the same file again later
+        if (picked.length === 0) return
+
+        const room = MAX_IMAGES - images.length
+        if (picked.length > room) {
+            showToast(`Хамгийн ихдээ ${MAX_IMAGES} зураг хавсаргах боломжтой`, 'error')
+        }
+
+        setPreparingImages(true)
+        try {
+            const added = []
+            for (const original of picked.slice(0, Math.max(room, 0))) {
+                const file = await resizeImage(original)
+                if (file.size > MAX_IMAGE_BYTES) {
+                    showToast('Зураг тус бүр 5MB-аас ихгүй байх ёстой', 'error')
+                    continue
+                }
+                added.push({
+                    id: Date.now() + Math.random().toString(36).substring(7),
+                    file,
+                    preview: URL.createObjectURL(file),
+                })
+            }
+            setImages(prev => [...prev, ...added])
+        } finally {
+            setPreparingImages(false)
         }
     }
 
     // Remove an image
     const removeImage = (id) => {
-        const updatedImages = images.filter(img => img.id !== id)
-        setImages(updatedImages)
+        const img = images.find(i => i.id === id)
+        if (img) URL.revokeObjectURL(img.preview)
+        setImages(images.filter(i => i.id !== id))
     }
 
     // Handle form submission
@@ -93,10 +125,12 @@ export default function Feedback() {
                 title: selectedCategory,
                 description: feedbackText,
                 type: selectedCategory,
+                images: images.map(img => img.file),
             })
 
             setSubmitting(false)
             setFeedbackText('')
+            images.forEach(img => URL.revokeObjectURL(img.preview))
             setImages([])
             showToast('Таны санал амжилттай илгээгдлээ. Баярлалаа', 'success')
         } catch (err) {
@@ -247,6 +281,22 @@ export default function Feedback() {
                                     </span>
                                 </div>
                                 <p style={{ fontSize: '14px', color: '#4b5563', marginBottom: '8px' }}>{item.description}</p>
+                                {item.images?.length > 0 && (
+                                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                                        {item.images.map((img, i) => (
+                                            <a key={img.publicId || i} href={img.url} target="_blank" rel="noopener noreferrer">
+                                                <img
+                                                    src={img.thumbUrl || img.url}
+                                                    alt={`Хавсаргасан зураг ${i + 1}`}
+                                                    width={64}
+                                                    height={64}
+                                                    loading="lazy"
+                                                    style={{ width: '64px', height: '64px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e5e7eb', display: 'block' }}
+                                                />
+                                            </a>
+                                        ))}
+                                    </div>
+                                )}
                                 {item.adminResponse && (
                                     <div style={{ marginTop: '10px', padding: '12px', backgroundColor: '#eff6ff', borderRadius: '8px', borderLeft: '3px solid #2563eb' }}>
                                         <p style={{ fontSize: '12px', fontWeight: '600', color: '#2563eb', marginBottom: '4px' }}>СӨХ-ийн хариу:</p>
@@ -316,16 +366,29 @@ export default function Feedback() {
 
                     {/* Image Upload Section */}
                     <div style={styles.imageUploadContainer}>
-                        <label style={styles.imageUploadLabel} htmlFor="image-upload">
-                            <ImagePlus style={styles.imageUploadIcon} />
-                            <span style={styles.imageUploadText}>Зураг нэмэх</span>
-                        </label>
+                        {(() => {
+                            const full = images.length >= MAX_IMAGES
+                            const blocked = full || preparingImages || submitting
+                            return (
+                                <label
+                                    style={{ ...styles.imageUploadLabel, ...(blocked ? { cursor: 'not-allowed', color: colors.textMuted } : {}) }}
+                                    htmlFor="image-upload"
+                                >
+                                    <ImagePlus style={styles.imageUploadIcon} />
+                                    <span style={styles.imageUploadText}>
+                                        {preparingImages ? 'Зураг бэлдэж байна…' : full ? 'Зургийн дээд хязгаарт хүрсэн' : 'Зураг нэмэх'}
+                                        {' '}({images.length}/{MAX_IMAGES})
+                                    </span>
+                                </label>
+                            )
+                        })()}
                         <input
                             type="file"
                             id="image-upload"
                             style={styles.imageInput}
                             accept="image/*"
                             multiple
+                            disabled={images.length >= MAX_IMAGES || preparingImages || submitting}
                             onChange={handleImageUpload}
                         />
 
@@ -334,11 +397,13 @@ export default function Feedback() {
                             <div style={styles.imagesPreview}>
                                 {images.map(img => (
                                     <div key={img.id} style={styles.imagePreviewContainer}>
-                                        <img src={img.preview} alt="Preview" style={styles.imagePreview} />
+                                        <img src={img.preview} alt="Хавсаргах зураг" style={styles.imagePreview} />
                                         <button
                                             type="button"
                                             style={styles.removeImageButton}
                                             onClick={() => removeImage(img.id)}
+                                            disabled={submitting}
+                                            aria-label="Зураг хасах"
                                         >
                                             ×
                                         </button>
@@ -355,9 +420,9 @@ export default function Feedback() {
                             ...styles.submitButton,
                             ...(submitting ? styles.submitButtonDisabled : {})
                         }}
-                        disabled={submitting || !feedbackText.trim()}
+                        disabled={submitting || preparingImages || !feedbackText.trim()}
                     >
-                        {submitting ? 'Илгээж байна...' : 'Илгээх'}
+                        {submitting ? (images.length ? 'Зураг илгээж байна…' : 'Илгээж байна…') : 'Илгээх'}
                     </button>
                 </form>
             </div>

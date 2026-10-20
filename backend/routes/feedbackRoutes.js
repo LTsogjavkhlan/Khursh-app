@@ -7,6 +7,7 @@ import {
     updateFeedbackStatus
 } from '../controllers/feedbackController.js'
 import { protect, adminOnly } from '../middleware/auth.js'
+import { uploadImages } from '../middleware/upload.js'
 import { validate, objectIdParam } from '../middleware/validate.js'
 import {
     submitFeedbackSchema,
@@ -17,8 +18,9 @@ import {
 const router = express.Router()
 router.param('id', objectIdParam)
 
-// User routes
-router.post('/', protect, validate(submitFeedbackSchema), submitFeedback)
+// User routes. Accepts JSON, or multipart with up to 3 photos in `images`
+// (parsed before validation, since multipart carries the text fields too).
+router.post('/', protect, uploadImages, validate(submitFeedbackSchema), submitFeedback)
 router.get('/my', protect, getUserFeedback)
 
 // Admin routes

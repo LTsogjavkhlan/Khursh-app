@@ -51,6 +51,24 @@ export async function startServer(port) {
         return { status: r.status, data: await r.json().catch(() => null) }
     }
 
+    // Multipart POST: `fields` are text fields, `files` are { name, type, bytes }
+    // sent under the same multipart field name (default `images`).
+    const upload = async (path, { token, fields = {}, files = [], fileField = 'images' } = {}) => {
+        ipN++
+        const form = new FormData()
+        Object.entries(fields).forEach(([k, v]) => form.append(k, v))
+        files.forEach(f => form.append(fileField, new Blob([f.bytes], { type: f.type }), f.name))
+        const r = await fetch(base + path, {
+            method: 'POST',
+            headers: {
+                'X-Forwarded-For': `10.${port % 250}.${Math.floor(ipN / 250)}.${ipN % 250}`,
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: form,
+        })
+        return { status: r.status, data: await r.json().catch(() => null) }
+    }
+
     // Resolves to 'connected' or 'rejected: <reason>'
     const socketResult = (token) => new Promise(resolve => {
         const s = ioClient(base, { auth: { token }, transports: ['websocket'], reconnection: false })
@@ -74,7 +92,7 @@ export async function startServer(port) {
         await mongo.stop()
     }
 
-    return { api, socketResult, login, register, stop }
+    return { api, upload, socketResult, login, register, stop }
 }
 
 // Collects many named checks in one scenario and reports every failure at the

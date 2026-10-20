@@ -24,8 +24,11 @@ const handleUnauthorized = () => {
 }
 
 export async function apiRequest(path, options = {}) {
+  // For FormData (file uploads) the browser must set the multipart
+  // Content-Type itself, including the boundary — so don't override it.
+  const isForm = typeof FormData !== 'undefined' && options.body instanceof FormData
   const headers = {
-    'Content-Type': 'application/json',
+    ...(isForm ? {} : { 'Content-Type': 'application/json' }),
     ...(options.headers || {}),
   }
 

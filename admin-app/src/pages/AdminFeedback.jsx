@@ -147,6 +147,30 @@ export default function AdminFeedback() {
                   )}
                   <p className="mt-1 text-sm text-slate-700 leading-relaxed ml-14">{item.description}</p>
 
+                  {item.images?.length > 0 && (
+                    <div className="mt-3 ml-14 flex flex-wrap gap-2">
+                      {item.images.map((img, i) => (
+                        <a
+                          key={img.publicId || i}
+                          href={img.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block rounded-xl overflow-hidden border border-slate-200 hover:border-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 transition-colors"
+                          aria-label={`Зураг ${i + 1}-г томоор харах`}
+                        >
+                          <img
+                            src={img.thumbUrl || img.url}
+                            alt=""
+                            width={80}
+                            height={80}
+                            loading="lazy"
+                            className="w-20 h-20 object-cover"
+                          />
+                        </a>
+                      ))}
+                    </div>
+                  )}
+
                   {item.adminResponse && (
                     <div className="mt-4 ml-14 p-3 bg-blue-50 rounded-xl border border-blue-100">
                       <p className="text-xs font-semibold text-blue-600 mb-1">Админы хариу</p>

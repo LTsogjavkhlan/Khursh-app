@@ -1,18 +1,39 @@
 import Feedback from '../models/Feedback.js'
 import { createUserNotification } from './notificationController.js'
 import { requireHoaId, docInHoa, resolveHoaId } from '../utils/tenant.js'
+import { isImageStoreConfigured, sniffImageType, uploadImage, deleteImages } from '../utils/imageStore.js'
+import { logger } from '../utils/logger.js'
 
 export const submitFeedback = async (req, res) => {
+    const files = req.files || []
+    const uploaded = []
     try {
         const { title, description, type } = req.body
+        const hoa = await resolveHoaId(req)
+
+        if (files.length) {
+            if (!isImageStoreConfigured()) {
+                return res.status(503).json({ message: 'Зураг хадгалах үйлчилгээ тохируулагдаагүй байна. Зураггүйгээр илгээнэ үү.' })
+            }
+            // Check every file's real contents before uploading any of them
+            const types = files.map(f => sniffImageType(f.buffer))
+            if (types.some(t => !t)) {
+                return res.status(400).json({ message: 'Зөвхөн зураг (JPEG, PNG, WebP, HEIC) хавсаргах боломжтой' })
+            }
+            const folder = `hoa/${hoa || 'none'}/feedback`
+            for (let i = 0; i < files.length; i++) {
+                uploaded.push(await uploadImage(files[i].buffer, { folder, type: types[i] }))
+            }
+        }
 
         const feedback = new Feedback({
             title,
             description,
             type,
+            images: uploaded,
             user: req.userId,
             hoaName: req.userHoaName || null,
-            hoa: await resolveHoaId(req)
+            hoa
         })
 
         await feedback.save()
@@ -21,7 +42,13 @@ export const submitFeedback = async (req, res) => {
             feedback
         })
     } catch (error) {
-        res.status(500).json({ message: error.message })
+        // Never leave photos behind for a complaint that wasn't saved
+        await deleteImages(uploaded.map(img => img.publicId))
+        logger.error('feedback submit failed', { error: error.message, images: files.length })
+        const isUpload = files.length && uploaded.length < files.length
+        res.status(isUpload ? 502 : 500).json({
+            message: isUpload ? 'Зураг хадгалахад алдаа гарлаа. Дахин оролдоно уу.' : 'Санал илгээхэд алдаа гарлаа. Дахин оролдоно уу.'
+        })
     }
 }
 

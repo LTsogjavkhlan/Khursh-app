@@ -34,6 +34,18 @@ const feedbackSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User'
         },
+        // Photos attached by the resident (stored in Cloudinary, max 3)
+        images: {
+            type: [{
+                _id: false,
+                url: { type: String, required: true },
+                thumbUrl: String,
+                publicId: { type: String, required: true },
+                width: Number,
+                height: Number
+            }],
+            default: []
+        },
         hoaName: { type: String, index: true },
         hoa: { type: mongoose.Schema.Types.ObjectId, ref: 'Hoa', index: true }
     },
