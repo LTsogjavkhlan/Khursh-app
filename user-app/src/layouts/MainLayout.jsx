@@ -175,7 +175,7 @@ export default function MainLayout() {
     const isHome = location.pathname === '/'
 
     return (
-        <div className="user-layout flex min-h-screen flex-col bg-canvas text-ink">
+        <div className="flex min-h-screen flex-col bg-canvas text-ink">
 
             {/* Top Header Bar (every page except Home) */}
             {!isHome && (

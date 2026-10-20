@@ -4,8 +4,8 @@ export const FEATURE_DISABLED_MESSAGE = 'Таны СӨХ-д энэ үйлчил�
 // True when the API refused a request because the HOA switched the feature off
 export const isFeatureDisabledError = (err) => err?.status === 403 && err?.data?.code === 'FEATURE_DISABLED'
 
-// Greyed-out look for a control whose feature is off. Colours, not opacity:
-// the layout forces opacity: 1 on everything inside .user-layout.
+// Greyed-out look for a control whose feature is off (muted colours keep
+// the label readable, unlike lowering opacity).
 export const disabledFeatureStyle = (colors) => ({
     backgroundColor: colors.surfaceAlt,
     color: colors.textMuted,

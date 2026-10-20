@@ -25,21 +25,6 @@ body {
   body { transition: none; }
 }
 
-/*
-  Force elements visible in the resident-facing layout. Scoped to .user-layout
-  so it never leaks into pages/components that don't use that class.
-*/
-.user-layout,
-.user-layout * {
-  opacity: 1 !important;
-}
-
-/* Login page animations rely on GSAP controlling opacity, so exempt it */
-.login-page,
-.login-page * {
-  opacity: initial !important;
-}
-
 /* Animation for sliding up menu */
 @keyframes slide-up {
   from { transform: translateY(100%); }
