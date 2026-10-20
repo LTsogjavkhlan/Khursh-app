@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { apiRequest } from '../api/client'
 import { useToast } from '../components/ui/Toast'
 import PageHeader from '../components/ui/PageHeader'
-import Button, { FOCUS_RING } from '../components/ui/Button'
+import Button from '../components/ui/Button'
+import IconAction from '../components/ui/IconAction'
 import EmptyState from '../components/ui/EmptyState'
 import Skeleton from '../components/ui/Skeleton'
 import Modal from '../components/ui/Modal'
@@ -22,23 +23,6 @@ const dayParts = (iso) => {
 const todayKey = () => {
   const t = new Date()
   return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`
-}
-
-function IconAction({ label, onClick, disabled, danger, children }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      aria-label={label}
-      title={label}
-      className={`w-9 h-9 flex items-center justify-center rounded-full text-ink-muted transition-colors disabled:opacity-50 ${FOCUS_RING} ${
-        danger ? 'hover:bg-danger-bg hover:text-danger-text' : 'hover:bg-surface-muted hover:text-ink'
-      }`}
-    >
-      {children}
-    </button>
-  )
 }
 
 export default function AdminCalendar() {
