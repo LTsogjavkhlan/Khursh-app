@@ -1,13 +1,17 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { apiRequest } from '../api/client'
 import { useToast } from '../components/ui/Toast'
 import PageHeader from '../components/ui/PageHeader'
-import Button from '../components/ui/Button'
+import Button, { FOCUS_RING } from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
+import StatCard from '../components/ui/StatCard'
 import EmptyState from '../components/ui/EmptyState'
 import Skeleton from '../components/ui/Skeleton'
 import Modal from '../components/ui/Modal'
-import { addressLine } from '../utils/format'
+import FilterTabs from '../components/ui/FilterTabs'
+import SearchInput from '../components/ui/SearchInput'
+import { addressLine, formatMoney, formatMonthLong, formatDay } from '../utils/format'
+import { Users, UserPlus, ShieldCheck, Check, X, UserSearch } from 'lucide-react'
 
 const MEMBERSHIP_META = {
   none:     { label: 'Гишүүнчлэлгүй', tone: 'slate' },
@@ -23,21 +27,37 @@ const PAYMENT_STATUS_META = {
   failed:     { label: 'Амжилтгүй', tone: 'red' },
 }
 
+const PAGE_SIZE = 20
+
+const fullName = (u) => `${u?.firstName || ''} ${u?.lastName || ''}`.trim() || u?.email || 'Нэргүй'
+const apartmentOf = (u) => [u?.building, u?.apartmentNumber].filter(Boolean).join('-')
+const initialsOf = (u) => ((u?.firstName?.[0] || '') + (u?.lastName?.[0] || '')).toUpperCase() || (u?.email?.[0] || '?').toUpperCase()
+
 function Avatar({ user, large = false }) {
+  const admin = user?.role === 'admin'
   return (
-    <div className={`${large ? 'w-14 h-14' : 'w-9 h-9'} rounded-full bg-surface-muted flex items-center justify-center text-[11px] font-bold text-ink-secondary flex-shrink-0 leading-tight text-center`}>
-      {user?.building
-        ? <>{user.building}<br />{user.apartmentNumber || '?'}</>
-        : (user?.apartmentNumber || (user?.firstName?.[0] || '?'))}
-    </div>
+    <span
+      aria-hidden="true"
+      className={`${large ? 'w-14 h-14 text-lg' : 'w-9 h-9 text-xs'} rounded-full flex items-center justify-center font-bold shrink-0 ${
+        admin ? 'bg-brand text-on-brand' : 'bg-brand-soft text-brand-text'
+      }`}
+    >
+      {initialsOf(user)}
+    </span>
   )
+}
+
+function RoleBadge({ role }) {
+  return role === 'admin'
+    ? <Badge tone="blue">Админ</Badge>
+    : <Badge tone="slate">Оршин суугч</Badge>
 }
 
 function InfoRow({ label, value }) {
   return (
     <div className="flex items-start justify-between gap-4 py-2 border-b border-line last:border-b-0">
-      <span className="text-xs font-medium text-ink-muted flex-shrink-0">{label}</span>
-      <span className="text-sm text-ink text-right">{value ?? '—'}</span>
+      <span className="text-xs font-medium text-ink-muted shrink-0">{label}</span>
+      <span className="text-sm text-ink text-right">{value || '—'}</span>
     </div>
   )
 }
@@ -77,20 +97,19 @@ function UserDetailModal({ userId, onClose }) {
           <Skeleton.Line className="h-3 w-2/3" />
         </div>
       ) : error ? (
-        <div className="rounded-xl bg-danger-bg border border-danger-bg px-4 py-3 text-sm text-danger-text">{error}</div>
+        <p role="alert" className="rounded-xl bg-danger-bg px-4 py-3 text-sm text-danger-text">{error}</p>
       ) : !user ? null : (
         <div className="space-y-5">
           <div className="flex items-center gap-4">
             <Avatar user={user} large />
             <div className="min-w-0">
-              <p className="text-base font-semibold text-ink truncate">{user.firstName} {user.lastName}</p>
+              <p className="text-base font-semibold text-ink truncate">{fullName(user)}</p>
               <p className="text-sm text-ink-muted truncate">{user.email}</p>
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                <RoleBadge role={user.role} />
+                {membership && <Badge tone={membership.tone}>{membership.label}</Badge>}
+              </div>
             </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <Badge tone={user.role === 'admin' ? 'blue' : 'slate'}>{user.role === 'admin' ? 'Админ' : 'Хэрэглэгч'}</Badge>
-            {membership && <Badge tone={membership.tone}>{membership.label}</Badge>}
           </div>
 
           <div>
@@ -111,7 +130,7 @@ function UserDetailModal({ userId, onClose }) {
           <div>
             <h3 className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-1">Тойм</h3>
             <InfoRow label="Санал, гомдол" value={`${data.feedbackCount ?? 0}`} />
-            <InfoRow label="Бүртгүүлсэн" value={user.createdAt ? new Date(user.createdAt).toLocaleDateString('mn-MN') : '—'} />
+            <InfoRow label="Бүртгүүлсэн" value={user.createdAt ? `${new Date(user.createdAt).getFullYear()} оны ${formatDay(user.createdAt)}` : null} />
           </div>
 
           <div>
@@ -123,8 +142,10 @@ function UserDetailModal({ userId, onClose }) {
                 {data.payments.map(p => {
                   const meta = PAYMENT_STATUS_META[p.status] || { label: p.status, tone: 'slate' }
                   return (
-                    <li key={p._id} className="flex items-center justify-between text-sm bg-surface-muted rounded-lg px-3 py-2">
-                      <span className="text-ink-secondary">{p.month || '—'} · {Number(p.amount).toLocaleString('mn-MN')}₮</span>
+                    <li key={p._id} className="flex items-center justify-between gap-3 text-sm bg-surface-muted rounded-lg px-3 py-2">
+                      <span className="text-ink-secondary">
+                        {p.month ? formatMonthLong(p.month) : '—'} · <span className="font-semibold text-ink tabular-nums">{formatMoney(p.amount)}</span>
+                      </span>
                       <Badge tone={meta.tone}>{meta.label}</Badge>
                     </li>
                   )
@@ -138,12 +159,11 @@ function UserDetailModal({ userId, onClose }) {
   )
 }
 
-const thCls = 'text-left text-xs font-semibold text-ink-muted uppercase tracking-wide px-4 py-3'
-const tdCls = 'px-4 py-3 align-middle'
-
 export default function AdminUsers() {
   const toast = useToast()
   const [tab, setTab] = useState('all')
+  const [query, setQuery] = useState('')
+  const [visible, setVisible] = useState(PAGE_SIZE)
   const [users, setUsers] = useState([])
   const [pending, setPending] = useState([])
   const [loading, setLoading] = useState(true)
@@ -153,7 +173,6 @@ export default function AdminUsers() {
 
   async function load() {
     try {
-      setLoading(true)
       setError(null)
       const [allUsers, pendingUsers] = await Promise.all([
         apiRequest('/api/admin/users'),
@@ -169,6 +188,7 @@ export default function AdminUsers() {
   }
 
   useEffect(() => { load() }, [])
+  useEffect(() => { setVisible(PAGE_SIZE) }, [tab, query])
 
   async function act(id, action) {
     try {
@@ -185,7 +205,7 @@ export default function AdminUsers() {
 
   async function toggleRole(user) {
     const nextRole = user.role === 'admin' ? 'user' : 'admin'
-    if (!window.confirm(`${user.firstName} ${user.lastName}-г ${nextRole === 'admin' ? 'админ' : 'энгийн хэрэглэгч'} болгох уу?`)) return
+    if (!window.confirm(`${fullName(user)}-г ${nextRole === 'admin' ? 'админ' : 'энгийн хэрэглэгч'} болгох уу?`)) return
     try {
       setBusyId(user._id)
       await apiRequest(`/api/admin/users/${user._id}/role`, {
@@ -201,135 +221,143 @@ export default function AdminUsers() {
     }
   }
 
+  const adminCount = users.filter(u => u.role === 'admin').length
+
+  const list = useMemo(() => {
+    const base = tab === 'pending' ? pending : tab === 'admins' ? users.filter(u => u.role === 'admin') : users
+    const q = query.trim().toLowerCase()
+    if (!q) return base
+    return base.filter(u =>
+      [fullName(u), u.email, u.phone, apartmentOf(u), addressLine(u)].some(v => v && String(v).toLowerCase().includes(q)))
+  }, [tab, users, pending, query])
+
+  const shown = list.slice(0, visible)
+  const isPending = tab === 'pending'
+
+  const nameCell = (u) => (
+    <button type="button" onClick={() => setDetailUserId(u._id)} className={`flex items-center gap-3 min-w-0 text-left rounded-[6px] group ${FOCUS_RING}`}>
+      <Avatar user={u} />
+      <span className="min-w-0">
+        <span className="block text-sm font-semibold text-ink truncate group-hover:underline underline-offset-2">{fullName(u)}</span>
+        <span className="block text-xs text-ink-muted truncate">{u.email}</span>
+      </span>
+    </button>
+  )
+
+  const actions = (u) => isPending ? (
+    <div className="flex gap-2 justify-end shrink-0">
+      <Button variant="success" size="sm" disabled={busyId === u._id} onClick={() => act(u._id, 'accept')}>
+        <Check className="w-4 h-4" aria-hidden="true" /> Зөвшөөрөх
+      </Button>
+      <Button variant="secondary" size="sm" disabled={busyId === u._id} onClick={() => act(u._id, 'reject')} aria-label={`${fullName(u)} хүсэлтийг татгалзах`}>
+        <X className="w-4 h-4" aria-hidden="true" /> <span className="hidden sm:inline">Татгалзах</span>
+      </Button>
+    </div>
+  ) : (
+    <div className="flex justify-end shrink-0">
+      <Button variant="ghost" size="sm" className="whitespace-nowrap" disabled={busyId === u._id} onClick={() => toggleRole(u)}>
+        {u.role === 'admin' ? 'Эрх хасах' : 'Админ болгох'}
+      </Button>
+    </div>
+  )
+
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-6">
       <PageHeader title="Хэрэглэгчид" subtitle="СӨХ-ийн оршин суугчид болон гишүүнчлэлийн хүсэлт." />
 
-      <div className="flex gap-2">
-        <button
-          onClick={() => setTab('all')}
-          className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors duration-150 ${tab === 'all' ? 'bg-brand text-white border-brand' : 'border-line text-ink-secondary hover:bg-surface-muted'}`}
-        >
-          Бүх оршин суугч ({users.length})
-        </button>
-        <button
-          onClick={() => setTab('pending')}
-          className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors duration-150 ${tab === 'pending' ? 'bg-brand text-white border-brand' : 'border-line text-ink-secondary hover:bg-surface-muted'}`}
-        >
-          Хүлээгдэж буй хүсэлт ({pending.length})
-        </button>
-      </div>
-
-      {error && (
-        <div className="rounded-xl bg-danger-bg border border-danger-bg px-4 py-3 text-sm text-danger-text">{error}</div>
-      )}
+      {error && <p role="alert" className="rounded-xl bg-danger-bg px-4 py-3 text-sm text-danger-text">{error}</p>}
 
       {loading ? (
-        <Skeleton.List rows={5} />
-      ) : tab === 'all' ? (
-        users.length === 0 ? (
-          <EmptyState title="Оршин суугч алга." />
-        ) : (
-          <div className="bg-surface border border-line rounded-2xl shadow-sm overflow-x-auto">
-            <table className="w-full min-w-[640px] border-collapse">
-              <thead>
-                <tr className="border-b border-line">
-                  <th className={thCls}>Хэрэглэгч</th>
-                  <th className={thCls}>Хаяг</th>
-                  <th className={thCls}>Эрх</th>
-                  <th className={`${thCls} text-right`}>Үйлдэл</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map(u => (
-                  <tr
-                    key={u._id}
-                    onClick={() => setDetailUserId(u._id)}
-                    className="border-b border-line last:border-b-0 cursor-pointer hover:bg-surface-muted transition-colors duration-150"
-                  >
-                    <td className={tdCls}>
-                      <div className="flex items-center gap-3 min-w-0">
-                        <Avatar user={u} />
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-ink truncate">{u.firstName} {u.lastName}</p>
-                          <p className="text-xs text-ink-muted truncate">{u.email}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className={`${tdCls} text-sm text-ink-secondary whitespace-nowrap`}>{addressLine(u)}</td>
-                    <td className={tdCls}>
-                      <Badge tone={u.role === 'admin' ? 'blue' : 'slate'}>{u.role === 'admin' ? 'Админ' : 'Хэрэглэгч'}</Badge>
-                    </td>
-                    <td className={`${tdCls} text-right`}>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        disabled={busyId === u._id}
-                        onClick={(e) => { e.stopPropagation(); toggleRole(u) }}
-                      >
-                        {u.role === 'admin' ? 'Эрх хасах' : 'Админ болгох'}
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <>
+          <div className="hidden sm:grid grid-cols-3 gap-4">
+            {[0, 1, 2].map(i => <Skeleton.Line key={i} className="h-[104px] rounded-card" />)}
           </div>
-        )
-      ) : pending.length === 0 ? (
-        <EmptyState title="Хүлээгдэж буй хүсэлт алга." />
+          <Skeleton.List rows={6} />
+        </>
       ) : (
-        <div className="bg-surface border border-line rounded-2xl shadow-sm overflow-x-auto">
-          <table className="w-full min-w-[560px] border-collapse">
-            <thead>
-              <tr className="border-b border-line">
-                <th className={thCls}>Хэрэглэгч</th>
-                <th className={thCls}>Хаяг</th>
-                <th className={`${thCls} text-right`}>Үйлдэл</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pending.map(u => (
-                <tr
-                  key={u._id}
-                  onClick={() => setDetailUserId(u._id)}
-                  className="border-b border-line last:border-b-0 cursor-pointer hover:bg-surface-muted transition-colors duration-150"
-                >
-                  <td className={tdCls}>
-                    <div className="flex items-center gap-3 min-w-0">
-                      <Avatar user={u} />
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold text-ink truncate">{u.firstName} {u.lastName}</p>
-                        <p className="text-xs text-ink-muted truncate">{u.email}</p>
+        <>
+          <div className="hidden sm:grid grid-cols-3 gap-4">
+            <StatCard label="Оршин суугч" value={users.length} icon={<Users className="w-[18px] h-[18px]" />} hint="Бүртгэлтэй хэрэглэгч" />
+            <StatCard label="Хүлээгдэж буй хүсэлт" value={pending.length} icon={<UserPlus className="w-[18px] h-[18px]" />} hint={pending.length ? 'Шийдвэр хүлээж байна' : 'Шинэ хүсэлт алга'} />
+            <StatCard label="Админ" value={adminCount} icon={<ShieldCheck className="w-[18px] h-[18px]" />} hint="Удирдах эрхтэй" />
+          </div>
+
+          <section className="bg-surface border border-line rounded-card shadow-card min-w-0" aria-label="Хэрэглэгчийн жагсаалт">
+            <div className="p-4 border-b border-line flex flex-col lg:flex-row lg:items-center gap-3">
+              <FilterTabs
+                label="Хэрэглэгч шүүх"
+                value={tab}
+                onChange={setTab}
+                tabs={[
+                  { id: 'all', label: 'Бүгд', count: users.length },
+                  { id: 'pending', label: 'Хүсэлт', count: pending.length },
+                  { id: 'admins', label: 'Админ', count: adminCount },
+                ]}
+              />
+              <SearchInput className="lg:ml-auto lg:w-72" label="Хэрэглэгч хайх" placeholder="Нэр, имэйл, утас эсвэл тоот…" value={query} onChange={setQuery} />
+            </div>
+
+            {list.length === 0 ? (
+              <div className="p-4">
+                <EmptyState
+                  icon={<UserSearch className="w-5 h-5" />}
+                  title={query ? 'Хайлтад тохирох хэрэглэгч олдсонгүй.' : isPending ? 'Хүлээгдэж буй хүсэлт алга.' : 'Хэрэглэгч алга.'}
+                />
+              </div>
+            ) : (
+              <>
+                {/* Desktop table */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-xs text-ink-muted border-b border-line">
+                        <th scope="col" className="px-5 py-3 font-medium">Хэрэглэгч</th>
+                        <th scope="col" className="px-3 py-3 font-medium">Тоот</th>
+                        <th scope="col" className="px-3 py-3 font-medium">{isPending ? 'Хүссэн хаяг' : 'Хаяг'}</th>
+                        <th scope="col" className="px-3 py-3 font-medium">{isPending ? 'Утас' : 'Эрх'}</th>
+                        <th scope="col" className="px-5 py-3 font-medium text-right"><span className="sr-only">Үйлдэл</span></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-line">
+                      {shown.map(u => (
+                        <tr key={u._id} className="hover:bg-surface-muted/60 transition-colors">
+                          <td className="px-5 py-3 max-w-[280px]">{nameCell(u)}</td>
+                          <td className="px-3 py-3 font-semibold text-ink tabular-nums whitespace-nowrap">{apartmentOf(u) || '—'}</td>
+                          <td className="px-3 py-3 text-ink-secondary">{addressLine(u)}</td>
+                          <td className="px-3 py-3 whitespace-nowrap">{isPending ? <span className="text-ink-secondary tabular-nums">{u.phone || '—'}</span> : <RoleBadge role={u.role} />}</td>
+                          <td className="px-5 py-3">{actions(u)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile list */}
+                <ul className="md:hidden divide-y divide-line">
+                  {shown.map(u => (
+                    <li key={u._id} className="px-4 py-3.5 space-y-2.5">
+                      <div className="flex items-start justify-between gap-3">
+                        {nameCell(u)}
+                        {!isPending && <RoleBadge role={u.role} />}
                       </div>
-                    </div>
-                  </td>
-                  <td className={`${tdCls} text-sm text-ink-secondary whitespace-nowrap`}>{addressLine(u)}</td>
-                  <td className={`${tdCls} text-right`}>
-                    <div className="flex gap-2 justify-end">
-                      <Button
-                        variant="success"
-                        size="sm"
-                        disabled={busyId === u._id}
-                        onClick={(e) => { e.stopPropagation(); act(u._id, 'accept') }}
-                      >
-                        Зөвшөөрөх
-                      </Button>
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        disabled={busyId === u._id}
-                        onClick={(e) => { e.stopPropagation(); act(u._id, 'reject') }}
-                      >
-                        Татгалзах
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-xs text-ink-muted min-w-0 truncate">{addressLine(u)}</span>
+                        {actions(u)}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="px-5 py-3 border-t border-line flex items-center justify-between gap-3 text-xs text-ink-muted">
+                  <span className="tabular-nums">{list.length}-аас {shown.length}-г харуулж байна</span>
+                  {shown.length < list.length && (
+                    <Button variant="secondary" size="sm" onClick={() => setVisible(v => v + PAGE_SIZE)}>Цааш үзэх</Button>
+                  )}
+                </div>
+              </>
+            )}
+          </section>
+        </>
       )}
 
       {detailUserId && (

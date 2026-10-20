@@ -9,8 +9,10 @@ import EmptyState from '../components/ui/EmptyState'
 import Skeleton from '../components/ui/Skeleton'
 import Modal from '../components/ui/Modal'
 import FormField, { fieldInputCls } from '../components/ui/FormField'
+import FilterTabs from '../components/ui/FilterTabs'
+import SearchInput from '../components/ui/SearchInput'
 import { addressLine, formatMoney, formatMonthLong, formatMonthShort, formatDay } from '../utils/format'
-import { Check, Trash2, Search, Settings2, Receipt, CircleDollarSign, Wallet, CheckCircle2, Clock } from 'lucide-react'
+import { Check, Trash2, Settings2, Receipt, CircleDollarSign, Wallet, CheckCircle2, Clock } from 'lucide-react'
 
 const STATUS_META = {
   pending:    { label: 'Хүлээгдэж буй', tone: 'yellow' },
@@ -323,23 +325,12 @@ export default function AdminPayments() {
           <section className="bg-surface border border-line rounded-card shadow-card min-w-0" aria-label="Төлбөрийн жагсаалт">
             {/* Filters: one row above the list they scope */}
             <div className="p-4 border-b border-line flex flex-col lg:flex-row lg:items-center gap-3">
-              <div className="flex gap-1 overflow-x-auto -mx-1 px-1 pb-0.5" role="tablist" aria-label="Төлөвөөр шүүх">
-                {STATUS_TABS.map(f => (
-                  <button
-                    key={f}
-                    type="button"
-                    role="tab"
-                    aria-selected={filter === f}
-                    onClick={() => setFilter(f)}
-                    className={`shrink-0 inline-flex items-center gap-1.5 h-8 px-3 rounded-[8px] text-xs font-semibold transition-colors ${FOCUS_RING} ${
-                      filter === f ? 'bg-brand text-on-brand' : 'text-ink-secondary hover:bg-surface-muted'
-                    }`}
-                  >
-                    {f === 'all' ? 'Бүгд' : STATUS_META[f]?.label || f}
-                    <span className={`tabular-nums ${filter === f ? 'text-white/75' : 'text-ink-muted'}`}>{counts[f] || 0}</span>
-                  </button>
-                ))}
-              </div>
+              <FilterTabs
+                label="Төлөвөөр шүүх"
+                value={filter}
+                onChange={setFilter}
+                tabs={STATUS_TABS.map(f => ({ id: f, label: f === 'all' ? 'Бүгд' : STATUS_META[f]?.label || f, count: counts[f] || 0 }))}
+              />
               <div className="flex flex-col sm:flex-row gap-2 lg:ml-auto">
                 <select
                   aria-label="Сараар шүүх"
@@ -350,18 +341,7 @@ export default function AdminPayments() {
                   <option value="all">Бүх сар</option>
                   {months.map(m => <option key={m} value={m}>{formatMonthLong(m)}</option>)}
                 </select>
-                <div className="relative flex-1 sm:flex-none sm:w-60">
-                  <Search className="w-4 h-4 text-ink-muted absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" aria-hidden="true" />
-                  <input
-                    type="search"
-                    aria-label="Оршин суугч хайх"
-                    placeholder="Нэр эсвэл тоот…"
-                    autoComplete="off"
-                    value={query}
-                    onChange={e => setQuery(e.target.value)}
-                    className={`${fieldInputCls.replace('py-2.5', '')} h-9 py-1 pl-9`}
-                  />
-                </div>
+                <SearchInput className="flex-1 sm:flex-none sm:w-60" label="Оршин суугч хайх" placeholder="Нэр эсвэл тоот…" value={query} onChange={setQuery} />
               </div>
             </div>
 
