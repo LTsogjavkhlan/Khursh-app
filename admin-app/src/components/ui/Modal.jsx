@@ -5,12 +5,27 @@ import { FOCUS_RING } from './Button'
 export default function Modal({ open, onClose, title, children, maxWidth = 'max-w-md' }) {
   const panelRef = useRef(null)
   const titleId = useId()
+  // Parents usually pass an inline onClose; keep it in a ref so the effect
+  // below runs only on open/close — re-running it on every render would pull
+  // focus out of the field being typed in.
+  const onCloseRef = useRef(onClose)
+  useEffect(() => { onCloseRef.current = onClose })
 
   useEffect(() => {
     if (!open) return
     const previouslyFocused = document.activeElement
     panelRef.current?.focus()
-    function onKeyDown(e) { if (e.key === 'Escape') onClose() }
+    function onKeyDown(e) {
+      if (e.key === 'Escape') { onCloseRef.current?.(); return }
+      // Keep Tab focus inside the dialog
+      if (e.key !== 'Tab' || !panelRef.current) return
+      const focusables = panelRef.current.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')
+      if (!focusables.length) return
+      const first = focusables[0]
+      const last = focusables[focusables.length - 1]
+      if (e.shiftKey && (document.activeElement === first || document.activeElement === panelRef.current)) { e.preventDefault(); last.focus() }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
+    }
     window.addEventListener('keydown', onKeyDown)
     const prevOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
@@ -19,7 +34,7 @@ export default function Modal({ open, onClose, title, children, maxWidth = 'max-
       document.body.style.overflow = prevOverflow
       previouslyFocused?.focus?.()
     }
-  }, [open, onClose])
+  }, [open])
 
   if (!open) return null
 
