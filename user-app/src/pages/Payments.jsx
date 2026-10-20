@@ -1,20 +1,31 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
-import { gsap } from 'gsap'
+import { useState, useEffect, useCallback } from 'react'
 import { useLocation } from 'react-router-dom'
 import { apiRequest, API_BASE_URL } from '../api/client'
-import { useTheme } from '../context/ThemeContext'
 import { useAuth } from '../context/AuthContext'
 import ApartmentAccessGate from '../components/ApartmentAccessGate'
-import { QrCode, Check, Zap, Droplet, Settings, ChevronDown, Receipt } from 'lucide-react'
+import { useToast } from '../components/Toast'
+import PageHeader from '../components/ui/PageHeader'
+import SegmentedTabs from '../components/ui/SegmentedTabs'
+import Button from '../components/ui/Button'
+import Card from '../components/ui/Card'
+import StatusPill from '../components/ui/StatusPill'
+import EmptyState from '../components/ui/EmptyState'
+import Dialog from '../components/ui/Dialog'
+import Field, { inputCls } from '../components/ui/Field'
+import { SkeletonBlock } from '../components/ui/Skeleton'
+import { money, number, dayLabel, monthLabel, fullDate } from '../utils/format'
+import { QrCode, Check, Zap, Droplet, Settings, ChevronDown, Receipt, CheckCircle2, History, RotateCcw } from 'lucide-react'
 
-const API_BASE = API_BASE_URL
-const fmtMnt = (n) => Number(n).toLocaleString('mn-MN') + '₮'
+const UTILITY = {
+    electricity: { label: 'Цахилгаан', sub: 'my.tog.mn', endpoint: 'electricity', icon: Zap, tint: 'bg-warning-bg text-warning-text' },
+    heat: { label: 'Дулаан & Ус', sub: 'my.dulaan.mn', endpoint: 'heat', icon: Droplet, tint: 'bg-info-bg text-info-text' },
+}
 
-/* ══════════════════════════════════════════════
-   QPay mock modal (shared by both utility types)
-══════════════════════════════════════════════ */
-function QPayModal({ amount, onClose, onPaid }) {
+/* ── QPay (simulated) ───────────────────────────────────────── */
+function QPayDialog({ open, amount, onClose, onPaid }) {
     const [step, setStep] = useState('qr')
+
+    useEffect(() => { if (open) setStep('qr') }, [open])
 
     const handlePay = () => {
         setStep('processing')
@@ -23,155 +34,111 @@ function QPayModal({ amount, onClose, onPaid }) {
     }
 
     return (
-        <div
-            onClick={onClose}
-            style={{ position: 'fixed', inset: 0, zIndex: 200, backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
-        >
-            <div
-                onClick={e => e.stopPropagation()}
-                style={{ backgroundColor: 'white', borderRadius: '24px 24px 0 0', padding: '24px 24px 36px', width: '100%', maxWidth: '420px', animation: 'pay-up 0.28s cubic-bezier(0.34,1.2,0.64,1)' }}
-            >
-                <div style={{ width: '36px', height: '4px', borderRadius: '2px', backgroundColor: '#e5e7eb', margin: '0 auto 20px' }} />
-
-                {step === 'qr' && (
-                    <>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-                            <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'linear-gradient(135deg,#0ea5e9,#6366f1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <QrCode size={22} color="white" />
-                            </div>
-                            <div>
-                                <p style={{ fontSize: '16px', fontWeight: '700', color: '#0f172a', margin: 0 }}>QPay</p>
-                                <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>Гар утасны төлбөр</p>
-                            </div>
+        <Dialog open={open} onClose={step === 'qr' ? onClose : undefined} title={step === 'qr' ? 'QPay-аар төлөх' : undefined}>
+            {step === 'qr' && (
+                <div className="space-y-4">
+                    <div className="rounded-card border border-line bg-canvas p-5 text-center">
+                        {/* Placeholder QR: the QPay integration is simulated */}
+                        <div aria-hidden="true" className="mx-auto mb-3 grid w-40 grid-cols-10 gap-[3px]">
+                            {Array.from({ length: 100 }, (_, i) => (
+                                <div key={i} className={`aspect-square rounded-[1px] ${Math.sin(i * 13.7 + 5.3) > 0.1 ? 'bg-ink' : ''}`} />
+                            ))}
                         </div>
-
-                        <div style={{ backgroundColor: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '16px', padding: '20px', textAlign: 'center', marginBottom: '16px' }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10,1fr)', gap: '3px', width: '160px', margin: '0 auto 10px' }}>
-                                {Array.from({ length: 100 }, (_, i) => (
-                                    <div key={i} style={{ aspectRatio: '1', borderRadius: '1px', backgroundColor: Math.sin(i * 13.7 + 5.3) > 0.1 ? '#0f172a' : 'transparent' }} />
-                                ))}
-                            </div>
-                            <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>QR код уншуулна уу</p>
-                        </div>
-
-                        <div style={{ backgroundColor: '#eff6ff', borderRadius: '12px', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                            <span style={{ fontSize: '14px', color: '#1e40af' }}>Нийт дүн</span>
-                            <span style={{ fontSize: '20px', fontWeight: '800', color: '#1e40af' }}>{fmtMnt(amount)}</span>
-                        </div>
-                        <button onClick={handlePay} style={{ width: '100%', padding: '14px', border: 'none', borderRadius: '14px', background: 'linear-gradient(135deg,#0ea5e9,#6366f1)', color: 'white', fontSize: '15px', fontWeight: '700', cursor: 'pointer' }}>
-                            Төлбөр баталгаажуулах
-                        </button>
-                    </>
-                )}
-
-                {step === 'processing' && (
-                    <div style={{ textAlign: 'center', padding: '32px 0' }}>
-                        <div style={{ width: '48px', height: '48px', borderRadius: '50%', border: '3px solid #e0e7ff', borderTopColor: '#6366f1', animation: 'pay-spin 0.7s linear infinite', margin: '0 auto' }} />
-                        <p style={{ fontSize: '16px', fontWeight: '600', color: '#1e293b', marginTop: '20px', marginBottom: '4px' }}>Боловсруулж байна...</p>
-                        <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>Банктай холбогдож байна</p>
+                        <p className="text-xs text-ink-muted">Банкны аппаараа QR кодыг уншуулна уу</p>
                     </div>
-                )}
-
-                {step === 'done' && (
-                    <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                        <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                            <Check size={32} color="#16a34a" strokeWidth={2.5} />
-                        </div>
-                        <p style={{ fontSize: '18px', fontWeight: '700', color: '#15803d', margin: '0 0 4px' }}>Амжилттай!</p>
-                        <p style={{ fontSize: '14px', color: '#16a34a', margin: 0 }}>Төлбөр баталгаажлаа</p>
+                    <div className="flex items-center justify-between rounded-control bg-brand-soft px-4 py-3">
+                        <span className="text-sm text-brand-text">Нийт дүн</span>
+                        <span className="text-xl font-semibold text-brand-text">{money(amount)}</span>
                     </div>
-                )}
-            </div>
-        </div>
+                    <Button fullWidth onClick={handlePay}><QrCode size={18} aria-hidden="true" /> Төлбөр баталгаажуулах</Button>
+                </div>
+            )}
+            {step === 'processing' && (
+                <div role="status" className="py-8 text-center">
+                    <div className="mx-auto h-12 w-12 animate-spin rounded-full border-[3px] border-line border-t-brand-text motion-reduce:animate-none" />
+                    <p className="mt-5 text-base font-semibold text-ink">Боловсруулж байна…</p>
+                    <p className="mt-1 text-sm text-ink-muted">Банктай холбогдож байна</p>
+                </div>
+            )}
+            {step === 'done' && (
+                <div role="status" className="py-6 text-center">
+                    <span className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-success-bg text-success-text">
+                        <Check size={32} strokeWidth={2.5} aria-hidden="true" />
+                    </span>
+                    <p className="text-lg font-semibold text-ink">Амжилттай!</p>
+                    <p className="mt-1 text-sm text-ink-muted">Төлбөр баталгаажлаа</p>
+                </div>
+            )}
+        </Dialog>
     )
 }
 
-/* ══════════════════════════════════════════════
-   Utility setup bottom-sheet modal
-══════════════════════════════════════════════ */
-function UtilitySetupModal({ codes, onSave, onClose, colors }) {
+/* ── Link utility account codes ─────────────────────────────── */
+function UtilitySetupDialog({ open, codes, onSave, onClose }) {
     const [elec, setElec] = useState(codes.electricity || '')
     const [heat, setHeat] = useState(codes.heat || '')
 
-    const inp = {
-        width: '100%', padding: '11px 14px', borderRadius: '11px',
-        border: `1.5px solid ${colors.border}`, fontSize: '14px',
-        backgroundColor: colors.surfaceAlt, color: colors.text,
-        boxSizing: 'border-box', letterSpacing: '0.5px',
-    }
+    useEffect(() => { if (open) { setElec(codes.electricity || ''); setHeat(codes.heat || '') } }, [open, codes])
 
     return (
-        <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 200, backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-            <div onClick={e => e.stopPropagation()} style={{ backgroundColor: colors.surface, borderRadius: '24px 24px 0 0', padding: '24px 20px 36px', width: '100%', maxWidth: '480px', animation: 'pay-up 0.25s cubic-bezier(0.34,1.3,0.64,1)' }}>
-                <div style={{ width: '36px', height: '4px', borderRadius: '2px', backgroundColor: colors.border, margin: '0 auto 20px' }} />
-
-                <h3 style={{ fontSize: '18px', fontWeight: '700', color: colors.text, margin: '0 0 4px' }}>Тооцооны код холбох</h3>
-                <p style={{ fontSize: '13px', color: colors.textMuted, margin: '0 0 20px' }}>
-                    Кодоо нэг удаа оруулсны дараа төлбөрийн мэдээлэл автоматаар харагдана.
-                </p>
-
-                {/* Electricity */}
-                <div style={{ marginBottom: '16px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                        <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: 'linear-gradient(135deg,#f59e0b,#ef4444)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <Zap size={14} color="white" strokeWidth={2.5} />
-                        </div>
-                        <div>
-                            <p style={{ fontSize: '13px', fontWeight: '600', color: colors.text, margin: 0 }}>Цахилгаан — my.tog.mn</p>
-                            <p style={{ fontSize: '11px', color: colors.textMuted, margin: 0 }}>УБЦТС хэрэглэгчийн код</p>
-                        </div>
-                    </div>
-                    <input style={inp} type="text" placeholder="Жишээ: UB12345678" value={elec} maxLength={16}
+        <Dialog
+            open={open}
+            onClose={onClose}
+            title="Тооцооны код холбох"
+            description="Кодоо нэг удаа оруулсны дараа төлбөрийн мэдээлэл автоматаар харагдана."
+        >
+            <form
+                className="space-y-4"
+                onSubmit={(e) => { e.preventDefault(); onSave({ electricity: elec.trim(), heat: heat.trim() }) }}
+            >
+                <Field label="Цахилгаан — my.tog.mn" hint="УБЦТС-ийн хэрэглэгчийн код">
+                    <input className={`${inputCls} uppercase tracking-wide`} type="text" autoComplete="off" spellCheck={false}
+                        placeholder="Жишээ: UB12345678…" value={elec} maxLength={16}
                         onChange={e => setElec(e.target.value.toUpperCase())} />
-                </div>
-
-                {/* Heat */}
-                <div style={{ marginBottom: '24px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                        <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: 'linear-gradient(135deg,#ef4444,#dc2626)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <Droplet size={14} color="white" strokeWidth={2.5} />
-                        </div>
-                        <div>
-                            <p style={{ fontSize: '13px', fontWeight: '600', color: colors.text, margin: 0 }}>Дулаан & Ус — my.dulaan.mn</p>
-                            <p style={{ fontSize: '11px', color: colors.textMuted, margin: 0 }}>УБ Дулааны Сүлжээ хэрэглэгчийн код</p>
-                        </div>
-                    </div>
-                    <input style={inp} type="text" placeholder="Жишээ: DU98765432" value={heat} maxLength={16}
+                </Field>
+                <Field label="Дулаан & Ус — my.dulaan.mn" hint="УБ Дулааны Сүлжээний хэрэглэгчийн код">
+                    <input className={`${inputCls} uppercase tracking-wide`} type="text" autoComplete="off" spellCheck={false}
+                        placeholder="Жишээ: DU98765432…" value={heat} maxLength={16}
                         onChange={e => setHeat(e.target.value.toUpperCase())} />
-                </div>
+                </Field>
+                <Button type="submit" fullWidth>Хадгалах</Button>
+            </form>
+        </Dialog>
+    )
+}
 
-                <button
-                    onClick={() => onSave({ electricity: elec.trim(), heat: heat.trim() })}
-                    style={{ width: '100%', padding: '13px', borderRadius: '13px', border: 'none', backgroundColor: '#2563eb', color: 'white', fontSize: '15px', fontWeight: '600', cursor: 'pointer' }}
-                >
-                    Хадгалах
-                </button>
-            </div>
+function DetailRow({ label, value }) {
+    return (
+        <div className="flex items-start justify-between gap-3 border-b border-line py-2 last:border-b-0">
+            <dt className="shrink-0 text-xs text-ink-muted">{label}</dt>
+            <dd className="text-right text-xs font-medium text-ink">{value}</dd>
         </div>
     )
 }
 
-/* ══════════════════════════════════════════════
-   Individual utility bill card (self-fetching)
-══════════════════════════════════════════════ */
-function UtilityBillCard({ type, code, onLinkClick, colors }) {
-    const [bill,    setBill]    = useState(null)
+/* ── Utility bill card (fetches its own bill) ───────────────── */
+function UtilityBillCard({ type, code, onLinkClick }) {
+    const [bill, setBill] = useState(null)
     const [loading, setLoading] = useState(false)
-    const [error,   setError]   = useState(null)
-    const [paid,    setPaid]    = useState(false)
-    const [qpay,    setQpay]    = useState(false)
+    const [error, setError] = useState(null)
+    const [paid, setPaid] = useState(false)
+    const [qpay, setQpay] = useState(false)
     const [expanded, setExpanded] = useState(false)
 
+    const cfg = UTILITY[type]
     const isElec = type === 'electricity'
-    const cfg = isElec
-        ? { label: 'Цахилгаан', sub: 'my.tog.mn', endpoint: 'electricity', grad: 'linear-gradient(135deg,#f59e0b,#ef4444)', icon: <Zap size={16} color="white" strokeWidth={2.5} /> }
-        : { label: 'Дулаан & Ус', sub: 'my.dulaan.mn', endpoint: 'heat', grad: 'linear-gradient(135deg,#ef4444,#dc2626)', icon: <Droplet size={16} color="white" strokeWidth={2.5} /> }
+    const Icon = cfg.icon
+    const iconChip = (
+        <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${cfg.tint}`}>
+            <Icon size={20} strokeWidth={2.2} aria-hidden="true" />
+        </span>
+    )
 
     const fetchBill = useCallback(async () => {
         if (!code) return
         setLoading(true); setError(null); setBill(null); setPaid(false)
         try {
-            const res = await fetch(`${API_BASE}/api/utility/${cfg.endpoint}/${encodeURIComponent(code)}`)
+            const res = await fetch(`${API_BASE_URL}/api/utility/${cfg.endpoint}/${encodeURIComponent(code)}`)
             const data = await res.json()
             if (!res.ok) throw new Error(data.error || 'Алдаа гарлаа')
             setBill(data)
@@ -186,185 +153,141 @@ function UtilityBillCard({ type, code, onLinkClick, colors }) {
 
     const status = paid ? 'paid' : bill?.status
 
-    // ── Not linked ──
     if (!code) {
         return (
-            <div style={{ border: `2px dashed ${colors.border}`, borderRadius: '16px', padding: '18px', display: 'flex', alignItems: 'center', gap: '14px' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: cfg.grad, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    {cfg.icon}
+            <div className="flex items-center gap-3 rounded-card border-2 border-dashed border-line p-4">
+                {iconChip}
+                <div className="min-w-0 flex-1">
+                    <p className="text-[15px] font-semibold text-ink">{cfg.label}</p>
+                    <p className="text-xs text-ink-muted">{cfg.sub} — холбогдоогүй</p>
                 </div>
-                <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: '14px', fontWeight: '600', color: colors.text, margin: '0 0 2px' }}>{cfg.label}</p>
-                    <p style={{ fontSize: '12px', color: colors.textMuted, margin: 0 }}>{cfg.sub} — холбогдоогүй</p>
-                </div>
-                <button
-                    onClick={onLinkClick}
-                    style={{ padding: '7px 14px', borderRadius: '10px', border: `1.5px solid ${colors.accent}`, backgroundColor: colors.accentBg, color: colors.accent, fontSize: '13px', fontWeight: '600', cursor: 'pointer', flexShrink: 0 }}
-                >
-                    Холбох
-                </button>
+                <Button variant="soft" size="sm" onClick={onLinkClick}>Холбох</Button>
             </div>
         )
     }
 
-    // ── Loading ──
     if (loading) {
         return (
-            <div style={{ border: `1px solid ${colors.border}`, borderRadius: '16px', padding: '18px', display: 'flex', alignItems: 'center', gap: '12px', backgroundColor: colors.surface }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: cfg.grad, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{cfg.icon}</div>
-                <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: '14px', fontWeight: '600', color: colors.text, margin: '0 0 6px' }}>{cfg.label}</p>
-                    <div style={{ height: '10px', borderRadius: '5px', backgroundColor: colors.border, width: '60%', animation: 'pay-pulse 1.4s ease-in-out infinite' }} />
+            <Card className="flex items-center gap-3">
+                {iconChip}
+                <div className="flex-1 space-y-2" role="status" aria-label={`${cfg.label} ачаалж байна`}>
+                    <p className="text-[15px] font-semibold text-ink">{cfg.label}</p>
+                    <SkeletonBlock className="h-3 w-3/5" />
                 </div>
-                <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: `2.5px solid ${colors.border}`, borderTopColor: '#3b82f6', animation: 'pay-spin 0.7s linear infinite', flexShrink: 0 }} />
-            </div>
+            </Card>
         )
     }
 
-    // ── Error ──
     if (error) {
         return (
-            <div style={{ border: '1px solid #fecaca', borderRadius: '16px', padding: '16px', backgroundColor: '#fef2f2', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: cfg.grad, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{cfg.icon}</div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: '14px', fontWeight: '600', color: '#b91c1c', margin: '0 0 2px' }}>{cfg.label}</p>
-                    <p style={{ fontSize: '12px', color: '#dc2626', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{error}</p>
+            <div role="alert" className="flex items-center gap-3 rounded-card bg-danger-bg p-4">
+                {iconChip}
+                <div className="min-w-0 flex-1">
+                    <p className="text-[15px] font-semibold text-danger-text">{cfg.label}</p>
+                    <p className="truncate text-xs text-danger-text">{error}</p>
                 </div>
-                <button onClick={fetchBill} style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #fca5a5', backgroundColor: 'white', color: '#dc2626', fontSize: '12px', fontWeight: '600', cursor: 'pointer', flexShrink: 0 }}>
-                    Дахин
-                </button>
+                <Button variant="secondary" size="sm" onClick={fetchBill}><RotateCcw size={14} aria-hidden="true" /> Дахин</Button>
             </div>
         )
     }
 
     if (!bill) return null
 
-    // ── Bill card ──
     const usageLine = isElec
-        ? `${bill.usage_kWh} кВт·ц  ×  ${bill.pricePerUnit}₮`
-        : `Дулаан ${bill.heatUsage_gcal} Гкал  +  Ус ${bill.waterUsage_m3} м³`
+        ? `${bill.usage_kWh} кВт·ц × ${bill.pricePerUnit}₮`
+        : `Дулаан ${bill.heatUsage_gcal} Гкал + Ус ${bill.waterUsage_m3} м³`
 
     return (
         <>
-            {qpay && <QPayModal amount={bill.totalAmount} onClose={() => setQpay(false)} onPaid={() => setPaid(true)} />}
+            <QPayDialog open={qpay} amount={bill.totalAmount} onClose={() => setQpay(false)} onPaid={() => setPaid(true)} />
 
-            <div style={{ border: `2px solid ${status === 'paid' ? '#86efac' : colors.border}`, borderRadius: '16px', overflow: 'hidden', backgroundColor: colors.surface, transition: 'border-color 0.3s' }}>
-                {/* Card header strip */}
-                <div style={{ background: cfg.grad, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: 'rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{cfg.icon}</div>
-                    <div style={{ flex: 1 }}>
-                        <p style={{ fontSize: '14px', fontWeight: '700', color: 'white', margin: 0 }}>{cfg.label}</p>
-                        <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.75)', margin: 0 }}>Код: {bill.consumerCode}</p>
+            <Card padded={false} className={status === 'paid' ? 'border-success-text/40' : ''}>
+                <div className="flex items-center gap-3 p-4">
+                    {iconChip}
+                    <div className="min-w-0 flex-1">
+                        <p className="text-[15px] font-semibold text-ink">{cfg.label}</p>
+                        <p className="truncate text-xs text-ink-muted">Код: {bill.consumerCode}</p>
                     </div>
-                    {/* Status pill */}
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '600', backgroundColor: status === 'paid' ? '#dcfce7' : 'rgba(255,255,255,0.2)', color: status === 'paid' ? '#15803d' : 'white', border: status === 'paid' ? '1px solid #86efac' : '1px solid rgba(255,255,255,0.3)' }}>
-                        <span style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: status === 'paid' ? '#22c55e' : '#fde68a' }} />
-                        {status === 'paid' ? 'Төлсөн' : 'Төлөөгүй'}
-                    </span>
+                    <StatusPill tone={status === 'paid' ? 'success' : 'warning'}>{status === 'paid' ? 'Төлсөн' : 'Төлөөгүй'}</StatusPill>
                 </div>
 
-                {/* Amount row */}
-                <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid ${colors.border}` }}>
-                    <div>
-                        <p style={{ fontSize: '22px', fontWeight: '800', color: colors.text, margin: '0 0 2px' }}>{fmtMnt(bill.totalAmount)}</p>
-                        <p style={{ fontSize: '12px', color: colors.textMuted, margin: 0 }}>{usageLine}</p>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                        <p style={{ fontSize: '11px', color: colors.textMuted, margin: '0 0 2px' }}>Төлөх хугацаа</p>
-                        <p style={{ fontSize: '13px', fontWeight: '600', color: colors.text, margin: 0 }}>{bill.dueDate}</p>
-                    </div>
+                <div className="px-4 pb-3">
+                    <p className="text-2xl font-semibold tracking-tight text-ink">{money(bill.totalAmount)}</p>
+                    <p className="mt-0.5 text-xs text-ink-muted">{usageLine}</p>
+                    <p className="mt-3 flex items-baseline justify-between gap-3 rounded-control bg-surface-muted px-3 py-2 text-xs">
+                        <span className="shrink-0 text-ink-muted">Төлөх хугацаа</span>
+                        <span className="text-right font-semibold text-ink">{bill.dueDate}</span>
+                    </p>
                 </div>
 
-                {/* Expand toggle */}
                 <button
+                    type="button"
                     onClick={() => setExpanded(v => !v)}
-                    style={{ width: '100%', background: 'none', border: 'none', padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', borderBottom: expanded ? `1px solid ${colors.border}` : 'none' }}
+                    aria-expanded={expanded}
+                    className="flex w-full items-center justify-between border-t border-line px-4 py-2.5 text-xs font-medium text-ink-muted transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:bg-surface-muted"
                 >
-                    <span style={{ fontSize: '12px', color: colors.textMuted, fontWeight: '500' }}>{expanded ? 'Хураангуй' : 'Дэлгэрэнгүй харах'}</span>
-                    <ChevronDown size={14} color={colors.textMuted} strokeWidth={2.5} style={{ transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                    {expanded ? 'Хураангуй' : 'Дэлгэрэнгүй харах'}
+                    <ChevronDown size={15} aria-hidden="true" className={`transition-transform motion-reduce:transition-none ${expanded ? 'rotate-180' : ''}`} />
                 </button>
 
-                {/* Expandable detail rows */}
                 {expanded && (
-                    <div style={{ padding: '4px 16px 8px' }}>
+                    <dl className="border-t border-line px-4 py-1">
                         {isElec ? (
                             <>
-                                <DetailRow label="Өмнөх заалт"    value={`${bill.previousReading.toLocaleString()} кВт`} colors={colors} />
-                                <DetailRow label="Одоогийн заалт"  value={`${bill.currentReading.toLocaleString()} кВт`} colors={colors} />
-                                <DetailRow label="Хэрэглэсэн"      value={`${bill.usage_kWh} кВт·ц`} colors={colors} />
-                                <DetailRow label="Нэгжийн үнэ"     value={`${bill.pricePerUnit}₮/кВт·ц`} colors={colors} />
-                                <DetailRow label="Нийлүүлэгч"      value={bill.provider} colors={colors} />
-                                <DetailRow label="Хаяг"            value={bill.address} colors={colors} />
+                                <DetailRow label="Өмнөх заалт" value={`${number(bill.previousReading)} кВт`} />
+                                <DetailRow label="Одоогийн заалт" value={`${number(bill.currentReading)} кВт`} />
+                                <DetailRow label="Хэрэглэсэн" value={`${bill.usage_kWh} кВт·ц`} />
+                                <DetailRow label="Нэгжийн үнэ" value={`${bill.pricePerUnit}₮/кВт·ц`} />
+                                <DetailRow label="Нийлүүлэгч" value={bill.provider} />
+                                <DetailRow label="Хаяг" value={bill.address} />
                             </>
                         ) : (
                             <>
-                                <DetailRow label="Дулаан хэрэглэсэн" value={`${bill.heatUsage_gcal} Гкал`} colors={colors} />
-                                <DetailRow label="Дулааны үнэ"       value={`${fmtMnt(bill.heatPricePerGcal)}/Гкал`} colors={colors} />
-                                <DetailRow label="Дулааны дүн"       value={fmtMnt(bill.heatAmount)} colors={colors} />
-                                <DetailRow label="Ус хэрэглэсэн"     value={`${bill.waterUsage_m3} м³`} colors={colors} />
-                                <DetailRow label="Усны үнэ"          value={`${fmtMnt(bill.waterPricePerM3)}/м³`} colors={colors} />
-                                <DetailRow label="Усны дүн"          value={fmtMnt(bill.waterAmount)} colors={colors} />
-                                <DetailRow label="Нийлүүлэгч"        value={bill.provider} colors={colors} />
-                                <DetailRow label="Хаяг"              value={bill.address} colors={colors} />
+                                <DetailRow label="Дулаан хэрэглэсэн" value={`${bill.heatUsage_gcal} Гкал`} />
+                                <DetailRow label="Дулааны үнэ" value={`${money(bill.heatPricePerGcal)}/Гкал`} />
+                                <DetailRow label="Дулааны дүн" value={money(bill.heatAmount)} />
+                                <DetailRow label="Ус хэрэглэсэн" value={`${bill.waterUsage_m3} м³`} />
+                                <DetailRow label="Усны үнэ" value={`${money(bill.waterPricePerM3)}/м³`} />
+                                <DetailRow label="Усны дүн" value={money(bill.waterAmount)} />
+                                <DetailRow label="Нийлүүлэгч" value={bill.provider} />
+                                <DetailRow label="Хаяг" value={bill.address} />
                             </>
                         )}
-                    </div>
+                    </dl>
                 )}
 
-                {/* Action */}
-                <div style={{ padding: '12px 16px 14px' }}>
+                <div className="border-t border-line p-4">
                     {status === 'paid' ? (
-                        <div style={{ padding: '11px', borderRadius: '12px', backgroundColor: '#f0fdf4', border: '1px solid #86efac', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                            <Check size={16} color="#16a34a" strokeWidth={2.5} />
-                            <span style={{ fontSize: '14px', fontWeight: '600', color: '#15803d' }}>Төлбөр амжилттай төлөгдлөө</span>
-                        </div>
+                        <p className="flex items-center justify-center gap-2 rounded-control bg-success-bg py-3 text-sm font-semibold text-success-text">
+                            <Check size={16} strokeWidth={2.5} aria-hidden="true" /> Төлбөр амжилттай төлөгдлөө
+                        </p>
                     ) : (
-                        <button
-                            onClick={() => setQpay(true)}
-                            style={{ width: '100%', padding: '12px', border: 'none', borderRadius: '12px', background: 'linear-gradient(135deg,#0ea5e9,#6366f1)', color: 'white', fontSize: '14px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                        >
-                            <QrCode size={16} color="white" />
-                            QPay-аар төлөх
-                        </button>
+                        <Button fullWidth onClick={() => setQpay(true)}><QrCode size={18} aria-hidden="true" /> QPay-аар төлөх</Button>
                     )}
                 </div>
-            </div>
+            </Card>
         </>
     )
 }
 
-function DetailRow({ label, value, colors }) {
-    return (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '8px 0', borderBottom: `1px solid ${colors.border}` }}>
-            <span style={{ fontSize: '12px', color: colors.textMuted, flexShrink: 0, marginRight: '12px' }}>{label}</span>
-            <span style={{ fontSize: '12px', fontWeight: '500', color: colors.text, textAlign: 'right' }}>{value}</span>
-        </div>
-    )
-}
-
-/* ══════════════════════════════════════════════
-   Main Payments Page
-══════════════════════════════════════════════ */
+/* ── Page ───────────────────────────────────────────────────── */
 export default function Payments() {
-    const headerRef  = useRef(null)
-    const contentRef = useRef(null)
-    const { colors } = useTheme()
     const { user, hasApartmentAccess } = useAuth()
+    const toast = useToast()
 
     // A link can open the history tab directly (e.g. Home → «Төлбөрийн түүх»)
     const location = useLocation()
-    const [activeTab,       setActiveTab]       = useState(location.state?.tab === 'history' ? 'history' : 'current')
+    const [activeTab, setActiveTab] = useState(location.state?.tab === 'history' ? 'history' : 'current')
     const [pendingPayments, setPendingPayments] = useState([])
-    const [paymentHistory,  setPaymentHistory]  = useState([])
-    const [loading,         setLoading]         = useState(true)
-    const [requesting,      setRequesting]      = useState(null)
+    const [paymentHistory, setPaymentHistory] = useState([])
+    const [loading, setLoading] = useState(true)
+    const [requesting, setRequesting] = useState(null)
 
     // Utility codes stored in localStorage per user
     const storageKey = user?._id ? `utility_codes_${user._id}` : null
     const [utilityCodes, setUtilityCodes] = useState({ electricity: '', heat: '' })
-    const [showSetup,    setShowSetup]    = useState(false)
+    const [showSetup, setShowSetup] = useState(false)
 
-    // Load saved codes on mount
     useEffect(() => {
         if (!storageKey) return
         try {
@@ -375,7 +298,7 @@ export default function Payments() {
 
     const saveUtilityCodes = (codes) => {
         setUtilityCodes(codes)
-        if (storageKey) localStorage.setItem(storageKey, JSON.stringify(codes))
+        try { if (storageKey) localStorage.setItem(storageKey, JSON.stringify(codes)) } catch { /* ignore */ }
         setShowSetup(false)
     }
 
@@ -408,29 +331,15 @@ export default function Payments() {
             if (result.payment?.deeplink) {
                 window.open(result.payment.deeplink, '_blank')
             } else {
-                alert('Төлбөр хүсэлт илгээгдлээ.')
+                toast.show('Төлбөр хүсэлт илгээгдлээ.')
             }
             // Reflect the new "processing" status
             loadPayments()
         } catch (err) {
-            alert(err.message || 'Алдаа гарлаа.')
+            toast.show(err.message || 'Алдаа гарлаа. Дахин оролдоно уу.')
         } finally {
             setRequesting(null)
         }
-    }
-
-    const formatDate = (str) => {
-        if (!str) return ''
-        const d = new Date(str)
-        return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`
-    }
-
-    const getStatusLabel = (status) => {
-        if (status === 'completed') return 'Төлсөн'
-        if (status === 'pending')   return 'Төлөөгүй'
-        if (status === 'processing') return 'Боловсруулж байна'
-        if (status === 'failed')    return 'Амжилтгүй'
-        return status
     }
 
     const isOverdue = (payment) => {
@@ -439,174 +348,147 @@ export default function Payments() {
         return new Date() > new Date(year, month - 1, 15)
     }
 
+    const statusOf = (payment) => {
+        if (isOverdue(payment)) return { tone: 'danger', label: 'Хугацаа хэтэрсэн' }
+        if (payment.status === 'processing') return { tone: 'info', label: 'Боловсруулж байна' }
+        if (payment.status === 'failed') return { tone: 'danger', label: 'Амжилтгүй' }
+        return { tone: 'warning', label: 'Төлөөгүй' }
+    }
+
     useEffect(() => { loadPayments() }, [])
 
-    useEffect(() => {
-        const a = gsap.from(headerRef.current,  { y: -20, opacity: 0, duration: 0.5, ease: 'power2.out' })
-        const b = gsap.from(contentRef.current, { y: 20,  opacity: 0, duration: 0.5, delay: 0.2, ease: 'power1.out' })
-        return () => { a.kill(); b.kill() }
-    }, [])
-
     const hasAnyUtility = utilityCodes.electricity || utilityCodes.heat
-
-    const s = {
-        container:   { padding: '16px', paddingBottom: '80px' },
-        sectionHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' },
-        sectionLabel:{ fontSize: '13px', fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px' },
-        card: {
-            backgroundColor: colors.surface, borderRadius: '14px', padding: '16px',
-            marginBottom: '12px', boxShadow: `0 1px 4px ${colors.shadow}`, border: `1px solid ${colors.border}`,
-        },
-        tab:         { padding: '11px 16px', fontSize: '15px', fontWeight: '500', cursor: 'pointer', flex: 1, textAlign: 'center' },
-        activeTab:   { color: colors.accent, borderBottom: `2px solid ${colors.accent}` },
-        inactiveTab: { color: colors.textMuted },
-    }
+    const totalDue = pendingPayments.filter(p => p.status === 'pending').reduce((s, p) => s + (p.amount || 0), 0)
 
     if (!hasApartmentAccess) {
         return <ApartmentAccessGate />
     }
 
     return (
-        <div style={s.container}>
-            {showSetup && (
-                <UtilitySetupModal
-                    codes={utilityCodes}
-                    colors={colors}
-                    onSave={saveUtilityCodes}
-                    onClose={() => setShowSetup(false)}
-                />
-            )}
+        <div className="pb-4 pt-2">
+            <UtilitySetupDialog open={showSetup} codes={utilityCodes} onSave={saveUtilityCodes} onClose={() => setShowSetup(false)} />
 
-            <header ref={headerRef} style={{ marginBottom: '16px' }}>
-                <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: colors.text, margin: 0 }}>Төлбөрүүд</h1>
-                <p style={{ color: colors.textMuted, marginTop: '4px', marginBottom: 0 }}>Сарын төлбөрийн мэдээлэл</p>
-            </header>
+            <PageHeader title="Төлбөр" description="СӨХ-ийн хураамж болон орон сууцны төлбөр" />
 
-            <div ref={contentRef}>
-                {/* Tabs */}
-                <div style={{ display: 'flex', borderBottom: `1px solid ${colors.border}`, marginBottom: '20px' }}>
-                    {[['current', 'Төлбөрүүд'], ['history', 'Төлбөрийн түүх']].map(([id, label]) => (
-                        <button key={id} type="button" aria-pressed={activeTab === id} style={{ ...s.tab, background: 'none', border: 'none', fontFamily: 'inherit', ...(activeTab === id ? s.activeTab : s.inactiveTab) }} onClick={() => setActiveTab(id)}>
-                            {label}
-                        </button>
-                    ))}
-                </div>
+            <SegmentedTabs
+                label="Төлбөрийн хэсэг"
+                value={activeTab}
+                onChange={setActiveTab}
+                className="mb-6"
+                tabs={[
+                    { id: 'current', label: 'Төлөх', count: pendingPayments.length },
+                    { id: 'history', label: 'Түүх' },
+                ]}
+            />
 
-                {activeTab === 'current' ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-
-                        {/* ── Section 1: HOA payments ── */}
-                        <section>
-                            <div style={s.sectionHead}>
-                                <span style={s.sectionLabel}>🏢 СӨХ-ийн хураамж</span>
-                            </div>
-
-                            {loading ? (
-                                <div style={{ ...s.card, display: 'flex', alignItems: 'center', gap: '10px', color: colors.textMuted, fontSize: '14px' }}>
-                                    <div style={{ width: '16px', height: '16px', borderRadius: '50%', border: '2px solid #e2e8f0', borderTopColor: '#3b82f6', animation: 'pay-spin 0.7s linear infinite', flexShrink: 0 }} />
-                                    Ачаалж байна...
-                                </div>
-                            ) : pendingPayments.length === 0 ? (
-                                <div style={{ ...s.card, textAlign: 'center', color: colors.textMuted, padding: '28px' }}>
-                                    <p style={{ fontSize: '28px', margin: '0 0 8px' }}>✅</p>
-                                    <p style={{ fontSize: '14px', fontWeight: '500', color: colors.text, margin: '0 0 2px' }}>Одоогоор төлбөргүй байна</p>
-                                    <p style={{ fontSize: '13px', margin: 0 }}>Сайн байна! Бүх төлбөр төлөгдсөн.</p>
-                                </div>
-                            ) : pendingPayments.map(payment => (
-                                <div key={payment._id} style={s.card}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                            <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                                <Receipt size={20} color="#2563eb" />
-                                            </div>
-                                            <div>
-                                                <p style={{ fontSize: '15px', fontWeight: '600', color: colors.text, margin: 0 }}>{payment.description}</p>
-                                                <p style={{ fontSize: '13px', color: colors.textMuted, margin: 0 }}>{payment.month ? `${payment.month} сар` : ''}</p>
-                                            </div>
-                                        </div>
-                                        <p style={{ fontSize: '18px', fontWeight: '800', color: colors.text, margin: 0 }}>{payment.amount.toLocaleString()}₮</p>
-                                    </div>
-
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                        <span style={{ fontSize: '12px', padding: '4px 10px', borderRadius: '6px', fontWeight: '500', backgroundColor: isOverdue(payment) ? '#fee2e2' : '#fef3c7', color: isOverdue(payment) ? '#b91c1c' : '#92400e' }}>
-                                            {isOverdue(payment) ? 'Хугацаа хэтэрсэн' : getStatusLabel(payment.status)}
-                                        </span>
-                                        <button
-                                            style={{ padding: '9px 20px', backgroundColor: colors.brand, color: 'white', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: '600', cursor: requesting === payment._id ? 'wait' : 'pointer', opacity: requesting === payment._id ? 0.6 : 1 }}
-                                            disabled={requesting === payment._id}
-                                            onClick={() => handleRequestPayment(payment)}
-                                        >
-                                            {requesting === payment._id ? 'Боловсруулж...' : 'Төлөх'}
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </section>
-
-                        {/* ── Section 2: Utility bills ── */}
-                        <section>
-                            <div style={s.sectionHead}>
-                                <span style={s.sectionLabel}>🏠 Орон сууцны төлбөрүүд</span>
-                                <button
-                                    onClick={() => setShowSetup(true)}
-                                    style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '5px 12px', borderRadius: '8px', border: `1px solid ${colors.border}`, backgroundColor: colors.surfaceAlt, color: colors.textMuted, fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}
-                                >
-                                    <Settings size={13} />
-                                    {hasAnyUtility ? 'Тохируулах' : 'Холбох'}
-                                </button>
-                            </div>
-
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                <UtilityBillCard
-                                    type="electricity"
-                                    code={utilityCodes.electricity}
-                                    onLinkClick={() => setShowSetup(true)}
-                                    colors={colors}
-                                />
-                                <UtilityBillCard
-                                    type="heat"
-                                    code={utilityCodes.heat}
-                                    onLinkClick={() => setShowSetup(true)}
-                                    colors={colors}
-                                />
-                            </div>
-
-                            {!hasAnyUtility && (
-                                <p style={{ fontSize: '12px', color: colors.textMuted, textAlign: 'center', marginTop: '8px' }}>
-                                    💡 «Холбох» товч дарж my.tog.mn болон my.dulaan.mn-ийн кодоо оруулна уу
-                                </p>
-                            )}
-                        </section>
-                    </div>
-                ) : (
-                    /* ── History tab ── */
-                    <div>
-                        <h2 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px', color: colors.text }}>Төлбөрийн түүх</h2>
-                        {loading ? (
-                            <p style={{ color: colors.textMuted, fontSize: '14px' }}>Ачаалж байна...</p>
-                        ) : paymentHistory.length === 0 ? (
-                            <p style={{ color: colors.textMuted, fontSize: '14px' }}>Төлбөрийн түүх байхгүй.</p>
-                        ) : paymentHistory.map(payment => (
-                            <div key={payment._id} style={{ padding: '14px', backgroundColor: colors.surfaceAlt, borderRadius: '12px', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            {activeTab === 'current' ? (
+                <div className="space-y-8">
+                    {/* HOA fees */}
+                    <section aria-labelledby="hoa-fees" className="space-y-3">
+                        {!loading && totalDue > 0 && (
+                            <div className="flex items-center justify-between rounded-card bg-brand px-5 py-4 text-on-brand">
                                 <div>
-                                    <p style={{ fontSize: '15px', fontWeight: '500', color: colors.text, margin: '0 0 2px' }}>{payment.description}</p>
-                                    <p style={{ fontSize: '13px', color: colors.textMuted, margin: 0 }}>{payment.paidAt ? formatDate(payment.paidAt) : payment.month || ''}</p>
+                                    <p className="text-xs font-medium uppercase tracking-wide text-white/70">Төлөх нийт дүн</p>
+                                    <p className="mt-1 text-[26px] font-semibold leading-tight tracking-tight">{money(totalDue)}</p>
                                 </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <span style={{ fontSize: '16px', fontWeight: '600', color: colors.text }}>{payment.amount.toLocaleString()}₮</span>
-                                    <span style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '6px', backgroundColor: '#d1fae5', color: '#065f46', fontWeight: '600' }}>Төлсөн</span>
-                                </div>
+                                <Receipt size={28} className="text-white/50" aria-hidden="true" />
                             </div>
-                        ))}
-                    </div>
-                )}
-            </div>
+                        )}
 
-            <style>{`
-                @keyframes pay-spin  { to { transform: rotate(360deg); } }
-                @keyframes pay-pulse { 0%,100%{opacity:.35} 50%{opacity:.9} }
-                @keyframes pay-up    { from{transform:translateY(100%);opacity:0} to{transform:translateY(0);opacity:1} }
-            `}</style>
+                        <h2 id="hoa-fees" className="pt-1 text-[15px] font-semibold text-ink-muted">СӨХ-ийн хураамж</h2>
+
+                        {loading ? (
+                            <div className="space-y-3"><SkeletonBlock className="h-32 rounded-card" /></div>
+                        ) : pendingPayments.length === 0 ? (
+                            <Card>
+                                <EmptyState icon={CheckCircle2} title="Одоогоор төлбөргүй байна" description="Бүх төлбөр төлөгдсөн байна." className="py-6" />
+                            </Card>
+                        ) : (
+                            <ul className="space-y-3">
+                                {pendingPayments.map(payment => {
+                                    const st = statusOf(payment)
+                                    return (
+                                        <li key={payment._id}>
+                                            <Card>
+                                                <div className="flex items-start gap-3">
+                                                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand-text">
+                                                        <Receipt size={20} aria-hidden="true" />
+                                                    </span>
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="text-[15px] font-semibold text-ink">{payment.description}</p>
+                                                        <p className="text-[13px] text-ink-muted">{payment.month ? monthLabel(payment.month) : ''}</p>
+                                                    </div>
+                                                    <p className="shrink-0 text-lg font-semibold text-ink">{money(payment.amount)}</p>
+                                                </div>
+                                                <div className="mt-4 flex items-center justify-between gap-3">
+                                                    <StatusPill tone={st.tone}>{st.label}</StatusPill>
+                                                    <Button
+                                                        size="sm"
+                                                        className="h-10 px-5"
+                                                        loading={requesting === payment._id}
+                                                        onClick={() => handleRequestPayment(payment)}
+                                                    >
+                                                        Төлөх
+                                                    </Button>
+                                                </div>
+                                            </Card>
+                                        </li>
+                                    )
+                                })}
+                            </ul>
+                        )}
+                    </section>
+
+                    {/* Utility bills */}
+                    <section aria-labelledby="utility-bills" className="space-y-3">
+                        <div className="flex items-center justify-between">
+                            <h2 id="utility-bills" className="text-[15px] font-semibold text-ink-muted">Орон сууцны төлбөр</h2>
+                            <Button variant="ghost" size="sm" onClick={() => setShowSetup(true)}>
+                                <Settings size={15} aria-hidden="true" /> {hasAnyUtility ? 'Тохируулах' : 'Холбох'}
+                            </Button>
+                        </div>
+                        <UtilityBillCard type="electricity" code={utilityCodes.electricity} onLinkClick={() => setShowSetup(true)} />
+                        <UtilityBillCard type="heat" code={utilityCodes.heat} onLinkClick={() => setShowSetup(true)} />
+                        {!hasAnyUtility && (
+                            <p className="text-center text-xs text-ink-muted">
+                                «Холбох» товч дарж my.tog.mn болон my.dulaan.mn-ийн кодоо оруулна уу.
+                            </p>
+                        )}
+                    </section>
+                </div>
+            ) : (
+                <section aria-label="Төлбөрийн түүх">
+                    {loading ? (
+                        <SkeletonBlock className="h-40 rounded-card" />
+                    ) : paymentHistory.length === 0 ? (
+                        <Card>
+                            <EmptyState icon={History} title="Төлбөрийн түүх алга" description="Төлсөн төлбөр энд харагдана." className="py-6" />
+                        </Card>
+                    ) : (
+                        <Card padded={false}>
+                            <ul className="divide-y divide-line">
+                                {paymentHistory.map(payment => (
+                                    <li key={payment._id} className="flex items-center gap-3 px-4 py-3.5">
+                                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-success-bg text-success-text">
+                                            <Check size={18} strokeWidth={2.5} aria-hidden="true" />
+                                        </span>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="truncate text-[15px] font-medium text-ink">{payment.description}</p>
+                                            <p className="text-xs text-ink-muted">
+                                                {payment.paidAt ? fullDate(payment.paidAt) : payment.month ? monthLabel(payment.month) : ''}
+                                            </p>
+                                        </div>
+                                        <div className="shrink-0 text-right">
+                                            <p className="text-[15px] font-semibold text-ink">{money(payment.amount)}</p>
+                                            <p className="text-[11px] font-medium text-success-text">Төлсөн{payment.paidAt ? ` · ${dayLabel(payment.paidAt)}` : ''}</p>
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
+                        </Card>
+                    )}
+                </section>
+            )}
         </div>
     )
 }
