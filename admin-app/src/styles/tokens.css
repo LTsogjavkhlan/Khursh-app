@@ -38,6 +38,12 @@
   --danger-bg:  #FBE6E3;  --danger-text:  #9B231A;
   --info-bg:    #E3ECF7;  --info-text:    #1E528A;
 
+  /* Charts (validated with the dataviz palette checks: the accent passes
+     lightness, chroma and 3:1 contrast; the de-emphasis grey is intentionally
+     grey and below 3:1, so charts using it always ship a legend + table view) */
+  --chart-accent: #1F7A57;
+  --chart-muted: #C9CFC9;
+
   /* Depth */
   --shadow-color: rgba(24, 33, 29, 0.06);
   --elev-card: 0 1px 2px rgba(24, 33, 29, 0.05), 0 1px 3px rgba(24, 33, 29, 0.04);
@@ -72,6 +78,9 @@
   --color-danger-text: var(--danger-text);
   --color-info-bg: var(--info-bg);
   --color-info-text: var(--info-text);
+
+  --color-chart-accent: var(--chart-accent);
+  --color-chart-muted: var(--chart-muted);
 
   --radius-card: 14px;
   --radius-control: 9px;
