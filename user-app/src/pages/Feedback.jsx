@@ -168,7 +168,7 @@ export default function Feedback() {
             fontSize: '14px', fontWeight: '500', transition: 'all 0.2s ease',
             color: colors.textSub, backgroundColor: colors.surface, border: 'none',
         },
-        activeTab: { backgroundColor: colors.accent, color: 'white' },
+        activeTab: { backgroundColor: colors.brand, color: 'white' },
         feedbackForm: {
             backgroundColor: colors.surface, borderRadius: '12px', padding: '20px',
             boxShadow: `0 2px 4px ${colors.shadow}`, border: `1px solid ${colors.border}`,
@@ -221,7 +221,7 @@ export default function Feedback() {
             boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
         },
         submitButton: {
-            width: '100%', padding: '14px', backgroundColor: colors.accent,
+            width: '100%', padding: '14px', backgroundColor: colors.brand,
             color: 'white', border: 'none', borderRadius: '8px', fontSize: '16px',
             fontWeight: '500', cursor: 'pointer', transition: 'background-color 0.2s ease',
         },

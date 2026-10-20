@@ -180,7 +180,7 @@ export default function GroupChat() {
             borderRadius: '16px',
             borderBottomRightRadius: mine ? '4px' : '16px',
             borderBottomLeftRadius: mine ? '16px' : '4px',
-            backgroundColor: mine ? colors.accent : colors.surfaceAlt,
+            backgroundColor: mine ? colors.brand : colors.surfaceAlt,
             color: mine ? '#ffffff' : colors.text,
         }),
         senderName: {
@@ -217,7 +217,7 @@ export default function GroupChat() {
             padding: '0 18px',
             borderRadius: '20px',
             border: 'none',
-            backgroundColor: colors.accent,
+            backgroundColor: colors.brand,
             color: '#ffffff',
             fontSize: '14px',
             fontWeight: '600',

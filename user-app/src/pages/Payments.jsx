@@ -529,7 +529,7 @@ export default function Payments() {
                                             {isOverdue(payment) ? 'Хугацаа хэтэрсэн' : getStatusLabel(payment.status)}
                                         </span>
                                         <button
-                                            style={{ padding: '9px 20px', backgroundColor: colors.accent, color: 'white', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: '600', cursor: requesting === payment._id ? 'wait' : 'pointer', opacity: requesting === payment._id ? 0.6 : 1 }}
+                                            style={{ padding: '9px 20px', backgroundColor: colors.brand, color: 'white', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: '600', cursor: requesting === payment._id ? 'wait' : 'pointer', opacity: requesting === payment._id ? 0.6 : 1 }}
                                             disabled={requesting === payment._id}
                                             onClick={() => handleRequestPayment(payment)}
                                         >

@@ -190,7 +190,7 @@ export default function LicensePlate() {
         headerSubtitle: { fontSize: '14px', color: colors.textMuted },
         gateButton: {
             width: '100%', padding: '16px', marginBottom: '24px', borderRadius: '16px',
-            backgroundColor: colors.accent, boxShadow: '0 10px 15px -3px rgba(37,99,235,0.2)',
+            backgroundColor: colors.brand, boxShadow: '0 10px 15px -3px rgba(37,99,235,0.2)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             border: 'none', cursor: 'pointer', transition: 'all 0.2s ease',
         },
@@ -244,7 +244,7 @@ export default function LicensePlate() {
             backgroundColor: colors.surfaceAlt, color: colors.text,
         },
         submitButton: {
-            width: '100%', padding: '12px', backgroundColor: colors.accent,
+            width: '100%', padding: '12px', backgroundColor: colors.brand,
             color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px',
             fontWeight: '500', cursor: 'pointer',
         },

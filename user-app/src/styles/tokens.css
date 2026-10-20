@@ -1,0 +1,113 @@
+/*
+  Design tokens — the single source of truth for colour, type, shape and
+  depth in the resident app.
+
+  - Use them from Tailwind classes (bg-surface, text-ink-muted, rounded-card …)
+    or from inline styles via the theme map in context/ThemeContext.jsx, whose
+    values are var(--…) references to these variables.
+  - Dark mode: ThemeContext toggles the `dark` class on <html>.
+  - Every text/background pair below was checked for WCAG AA contrast
+    (4.5:1 text, 3:1 input borders and focus rings) in light and dark.
+*/
+
+:root {
+  color-scheme: light;
+
+  /* Surfaces */
+  --canvas: #F6F5F1;          /* page background */
+  --surface: #FFFFFF;         /* cards, sheets, nav */
+  --surface-muted: #EFEEE8;   /* subtle fills: inputs, chips, hover */
+
+  /* Text */
+  --ink: #202925;
+  --ink-secondary: #3F4843;   /* labels, secondary copy */
+  --ink-muted: #626C66;       /* brief's #727B75 darkened to pass AA */
+
+  /* Lines */
+  --line: #E5E8E3;            /* dividers, card borders (decorative) */
+  --line-strong: #8A938D;     /* input borders: 3:1 against surface */
+
+  /* Brand */
+  --brand: #183B35;           /* primary buttons, active states */
+  --brand-hover: #10302A;
+  --on-brand: #FFFFFF;
+  --brand-soft: #E4EEEA;      /* tinted backgrounds (active nav, selected) */
+  --brand-text: #183B35;      /* brand-coloured text and icons */
+
+  /* Status — always paired with a label or icon, never colour alone */
+  --success-bg: #E2F1E8;  --success-text: #1D6440;
+  --warning-bg: #FBEFD9;  --warning-text: #7A4306;
+  --danger-bg:  #FBE6E3;  --danger-text:  #9B231A;
+  --info-bg:    #E3ECF7;  --info-text:    #1E528A;
+
+  /* Depth */
+  --shadow-color: rgba(24, 33, 29, 0.06);
+  --elev-card: 0 1px 2px rgba(24, 33, 29, 0.05), 0 1px 3px rgba(24, 33, 29, 0.04);
+  --elev-pop: 0 12px 32px rgba(24, 33, 29, 0.16);
+  --overlay: rgba(16, 22, 19, 0.45);
+}
+
+.dark {
+  color-scheme: dark;
+
+  --canvas: #0F1513;
+  --surface: #171F1C;
+  --surface-muted: #202A26;
+
+  --ink: #E7ECE9;
+  --ink-secondary: #C5CEC9;
+  --ink-muted: #9DA8A2;
+
+  --line: #26302C;
+  --line-strong: #5E6B65;
+
+  --brand: #2F6B5C;           /* lifted so white text and edges stay visible */
+  --brand-hover: #377A69;
+  --on-brand: #FFFFFF;
+  --brand-soft: #1B332D;
+  --brand-text: #8FD0BC;
+
+  --success-bg: #173226;  --success-text: #86D8AE;
+  --warning-bg: #3A2A12;  --warning-text: #F2C27A;
+  --danger-bg:  #3D1C1A;  --danger-text:  #F4A39A;
+  --info-bg:    #16283D;  --info-text:    #9CC4F0;
+
+  --shadow-color: rgba(0, 0, 0, 0.3);
+  --elev-card: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --elev-pop: 0 12px 32px rgba(0, 0, 0, 0.5);
+  --overlay: rgba(0, 0, 0, 0.6);
+}
+
+/* Expose the tokens to Tailwind as utilities: bg-canvas, text-ink, border-line,
+   bg-brand, text-brand-text, rounded-card, shadow-card, font-sans … */
+@theme inline {
+  --font-sans: 'Inter Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-ink: var(--ink);
+  --color-ink-secondary: var(--ink-secondary);
+  --color-ink-muted: var(--ink-muted);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-on-brand: var(--on-brand);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-text: var(--brand-text);
+  --color-success-bg: var(--success-bg);
+  --color-success-text: var(--success-text);
+  --color-warning-bg: var(--warning-bg);
+  --color-warning-text: var(--warning-text);
+  --color-danger-bg: var(--danger-bg);
+  --color-danger-text: var(--danger-text);
+  --color-info-bg: var(--info-bg);
+  --color-info-text: var(--info-text);
+
+  --radius-card: 14px;
+  --radius-control: 9px;
+
+  --shadow-card: var(--elev-card);
+  --shadow-pop: var(--elev-pop);
+}

@@ -1,7 +1,8 @@
 @import "tailwindcss";
+@import "./styles/tokens.css";
 
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: var(--font-sans);
   line-height: 1.5;
   font-weight: 400;
   font-synthesis: none;
@@ -14,7 +15,14 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  background-color: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans);
   transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body { transition: none; }
 }
 
 /*
@@ -40,4 +48,26 @@ body {
 
 .animate-slide-up {
   animation: slide-up 0.3s ease-out forwards;
+}
+
+/* App shell (MainLayout): "More" sheet and its backdrop */
+@keyframes shell-sheet-in {
+  from { transform: translateY(16px); }
+  to   { transform: translateY(0); }
+}
+@keyframes shell-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.shell-sheet { animation: shell-sheet-in 200ms ease-out; }
+.shell-fade  { animation: shell-fade-in 200ms ease-out; }
+
+@keyframes dialog-pop-in {
+  from { transform: scale(0.97); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+.dialog-pop { animation: dialog-pop-in 160ms ease-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  .shell-sheet, .shell-fade, .dialog-pop { animation: none; }
 }

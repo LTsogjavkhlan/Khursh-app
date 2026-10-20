@@ -22,12 +22,12 @@ const GroupChat = lazy(() => import('./pages/GroupChat'))
 
 function LoadingFallback() {
   return (
-    <div className="min-h-screen bg-blue-600 flex items-center justify-center">
+    <div className="min-h-screen bg-brand flex items-center justify-center">
       <div className="text-white text-center">
         <div className="mb-4">
           <Loader2 className="w-16 h-16 mx-auto animate-spin" />
         </div>
-        <p className="text-xl font-bold">Loading...</p>
+        <p className="text-base font-medium">Ачаалж байна…</p>
       </div>
     </div>
   )

@@ -120,7 +120,7 @@ function AnnouncementCard({ item, colors }) {
                 }}>
                     <div style={{
                         width: 36, height: 36, borderRadius: 10,
-                        background: colors.primary + '18',
+                        background: colors.accentBg,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         fontSize: 18, flexShrink: 0
                     }}>
@@ -128,7 +128,7 @@ function AnnouncementCard({ item, colors }) {
                     </div>
                     <span style={{
                         fontSize: 11, fontWeight: 600, color: colors.primary,
-                        background: colors.primary + '15',
+                        background: colors.accentBg,
                         padding: '2px 8px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: '0.04em'
                     }}>
                         Зарлал

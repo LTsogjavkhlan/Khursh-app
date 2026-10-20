@@ -45,8 +45,8 @@ function AddressCard({ addr, onActivate, onDelete, activating, deleting, colors 
         <div style={{
             position: 'relative',
             borderRadius: '16px',
-            border: `2px solid ${isActive ? '#3b82f6' : colors.border}`,
-            backgroundColor: isActive ? (colors.isDark ? '#1e3a5f' : '#eff6ff') : colors.surface,
+            border: `2px solid ${isActive ? colors.accent : colors.border}`,
+            backgroundColor: isActive ? colors.accentBg : colors.surface,
             padding: '16px',
             transition: 'border-color 0.2s, background-color 0.2s',
             boxShadow: isActive ? '0 0 0 3px rgba(59,130,246,0.12)' : 'none',
@@ -474,7 +474,7 @@ function ApartmentTenants({ apartment, tenants, invites, colors, onChanged }) {
                             onClick={handleInvite}
                             style={{
                                 padding: '9px 14px', borderRadius: '10px', border: 'none',
-                                backgroundColor: sending || !contact.trim() ? '#93c5fd' : colors.accent,
+                                backgroundColor: sending || !contact.trim() ? '#93c5fd' : colors.brand,
                                 color: 'white', fontSize: '13px', fontWeight: '600',
                                 cursor: sending || !contact.trim() ? 'not-allowed' : 'pointer', flexShrink: 0,
                             }}
@@ -824,7 +824,7 @@ export default function Profile({ onLogout }) {
             transition: 'border-color 0.2s',
         },
         saveBtn: {
-            width: '100%', padding: '14px', backgroundColor: colors.accent,
+            width: '100%', padding: '14px', backgroundColor: colors.brand,
             color: 'white', border: 'none', borderRadius: '12px',
             fontSize: '15px', fontWeight: '500', cursor: 'pointer',
         },
@@ -838,7 +838,7 @@ export default function Profile({ onLogout }) {
             position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
             backgroundColor: colors.border, borderRadius: '24px', transition: 'background-color 0.3s',
         },
-        toggleSliderOn: { backgroundColor: colors.accent },
+        toggleSliderOn: { backgroundColor: colors.brand },
         toggleThumb: {
             position: 'absolute', height: '20px', width: '20px', left: '2px', bottom: '2px',
             backgroundColor: 'white', borderRadius: '50%', transition: 'transform 0.3s',
@@ -893,7 +893,7 @@ export default function Profile({ onLogout }) {
                         <p style={{ fontSize: '14px', color: colors.textMuted, margin: '0 0 24px' }}>Таны мэдээлэл шинэчлэгдлээ.</p>
                         <button
                             onClick={() => setShowSuccess(false)}
-                            style={{ width: '100%', padding: '12px', backgroundColor: colors.accent, color: 'white', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: '600', cursor: 'pointer' }}
+                            style={{ width: '100%', padding: '12px', backgroundColor: colors.brand, color: 'white', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: '600', cursor: 'pointer' }}
                         >
                             ОК
                         </button>

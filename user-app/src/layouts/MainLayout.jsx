@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Outlet, NavLink, useLocation } from 'react-router-dom'
 import { apiRequest } from '../api/client'
 import {
@@ -19,13 +19,36 @@ import { useToast } from '../components/Toast'
 import { FEATURE_DISABLED_MESSAGE } from '../utils/features'
 import { useAuth } from '../context/AuthContext.jsx'
 
+// Shared focus ring for every interactive element in the shell
+const FOCUS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-text focus-visible:ring-offset-2 focus-visible:ring-offset-surface'
+
+function HeaderIconLink({ to, label, icon, children }) {
+    const Icon = icon
+    return (
+        <NavLink
+            to={to}
+            aria-label={label}
+            className={({ isActive }) =>
+                `relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors duration-150 ${FOCUS} ${
+                    isActive ? 'bg-brand-soft text-brand-text' : 'text-ink-secondary hover:bg-surface-muted hover:text-ink'
+                }`
+            }
+        >
+            <Icon size={21} strokeWidth={1.9} />
+            {children}
+        </NavLink>
+    )
+}
+
 export default function MainLayout() {
     const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false)
     const [notificationCount, setNotificationCount] = useState(0)
     const [isScrolled, setIsScrolled] = useState(false)
     const location = useLocation()
     const pollRef = useRef(null)
-    const { colors, isDark } = useTheme()
+    const moreButtonRef = useRef(null)
+    const moreMenuRef = useRef(null)
+    const { isDark } = useTheme()
     const { hasApartmentAccess, hasFeature } = useAuth()
     const toast = useToast()
 
@@ -133,299 +156,120 @@ export default function MainLayout() {
         setIsMoreMenuOpen(!isMoreMenuOpen)
     }
 
-    const styles = {
-        container: {
-            display: 'flex',
-            flexDirection: 'column',
-            minHeight: '100vh',
-            backgroundColor: colors.bg,
-        },
-        header: {
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            backgroundColor: colors.surface,
-            borderBottom: `1px solid ${colors.border}`,
-            height: '56px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '0 16px',
-            zIndex: 10,
-            transition: 'box-shadow 0.3s ease',
-        },
-        headerScrolled: {
-            boxShadow: `0 4px 6px -1px ${colors.shadow}, 0 2px 4px -1px ${colors.shadow}`,
-        },
-        headerLogoContainer: {
-            display: 'flex',
-            alignItems: 'center',
-        },
-        appTitle: {
-            fontSize: '18px',
-            fontWeight: '600',
-            background: 'linear-gradient(to right, #2563eb, #4f46e5)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-        },
-        headerIconsContainer: {
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-        },
-        headerIconButton: {
-            position: 'relative',
-            width: '40px',
-            height: '40px',
-            flexShrink: 0,
-            backgroundColor: colors.surfaceAlt,
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            transition: 'background-color 0.15s ease, transform 0.1s ease',
-        },
-        notificationBadge: {
-            position: 'absolute',
-            top: '-2px',
-            right: '-2px',
-            backgroundColor: '#ef4444',
-            color: 'white',
-            fontSize: '10px',
-            fontWeight: '700',
-            lineHeight: 1,
-            borderRadius: '9999px',
-            minWidth: '18px',
-            height: '18px',
-            padding: '0 4px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxSizing: 'border-box',
-            border: `2px solid ${colors.surface}`,
-        },
-        main: {
-            flex: 1,
-            paddingTop: '64px',
-            paddingBottom: '80px',
-            paddingLeft: '16px',
-            paddingRight: '16px',
-            overflowX: 'hidden',
-            backgroundColor: colors.surface,
-            color: colors.text,
-        },
-        bottomNav: {
-            position: 'fixed',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            backgroundColor: colors.surface,
-            borderTop: `1px solid ${colors.border}`,
-            zIndex: 10,
-            boxShadow: `0 -2px 10px ${colors.shadow}`,
-        },
-        bottomNavGrid: {
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
-            height: '64px',
-        },
-        navItem: {
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'all 0.2s ease',
-            cursor: 'pointer',
-            position: 'relative',
-        },
-        navItemActive: {
-            color: colors.accent,
-        },
-        navItemInactive: {
-            color: colors.textMuted,
-        },
-        navLabel: {
-            fontSize: '12px',
-            marginTop: '4px',
-            transition: 'all 0.2s ease',
-        },
-        activeIndicator: {
-            position: 'absolute',
-            bottom: '0',
-            width: '20px',
-            height: '3px',
-            backgroundColor: colors.accent,
-            borderRadius: '3px 3px 0 0',
-            transition: 'all 0.3s ease',
-            transform: 'translateY(-6px)',
-        },
-        moreMenu: {
-            position: 'fixed',
-            bottom: '64px',
-            left: 0,
-            right: 0,
-            backgroundColor: colors.surface,
-            borderTop: `1px solid ${colors.border}`,
-            boxShadow: `0 -10px 15px -3px ${colors.shadow}`,
-            borderRadius: '20px 20px 0 0',
-            zIndex: 20,
-            animation: 'slide-up 0.3s ease-out forwards',
-        },
-        dragHandle: {
-            width: '40px',
-            height: '4px',
-            backgroundColor: colors.border,
-            borderRadius: '9999px',
-            margin: '12px auto',
-        },
-        moreMenuGrid: {
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '16px',
-            padding: '16px 20px 24px',
-        },
-        moreMenuItem: {
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '16px 12px',
-            borderRadius: '12px',
-            transition: 'all 0.2s ease',
-        },
-        moreMenuItemActive: {
-            backgroundColor: colors.accentBg,
-            color: colors.accent,
-        },
-        moreMenuItemInactive: {
-            color: colors.textSub,
-        },
-        moreMenuIconContainer: {
-            width: '44px',
-            height: '44px',
-            borderRadius: '12px',
-            backgroundColor: colors.surfaceAlt,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: '8px',
-            transition: 'all 0.2s ease',
-        },
-        moreMenuIconContainerActive: {
-            backgroundColor: colors.accentBg,
-        },
-        backdrop: {
-            position: 'fixed',
-            inset: 0,
-            bottom: '64px',
-            backgroundColor: colors.overlay,
-            zIndex: 10,
-            backdropFilter: 'blur(2px)',
-            opacity: 0,
-            animation: 'fade-in 0.3s ease-out forwards',
-        },
-    };
+    // "More" sheet: Escape closes it, focus moves into it when it opens and
+    // returns to the menu button when it closes.
+    useEffect(() => {
+        if (!isMoreMenuOpen) return
+        moreMenuRef.current?.querySelector('a')?.focus()
+        const onKeyDown = (e) => { if (e.key === 'Escape') setIsMoreMenuOpen(false) }
+        window.addEventListener('keydown', onKeyDown)
+        const button = moreButtonRef.current
+        return () => {
+            window.removeEventListener('keydown', onKeyDown)
+            button?.focus()
+        }
+    }, [isMoreMenuOpen])
+
+    const badgeLabel = notificationCount > 9 ? '9+' : notificationCount
 
     return (
-        <div style={styles.container} className="user-layout">
+        <div className="user-layout flex min-h-screen flex-col bg-canvas text-ink">
 
             {/* Top Header Bar */}
-            <header style={{
-                ...styles.header,
-                ...(isScrolled ? styles.headerScrolled : {})
-            }}>
-                <div style={styles.headerLogoContainer}>
-                    <img
-                        src={isDark ? '/icons/hurshlogowhite.png' : '/icons/hurshlogo.png'}
-                        alt="Хөрш Logo"
-                        style={{
-                            width: '32px',
-                            height: '32px',
-                            borderRadius: '8px',
-                            marginRight: '10px'
-                        }}
-                    />
-                    <h1 style={styles.appTitle}>Хөрш</h1>
-                </div>
+            <header
+                className={`fixed inset-x-0 top-0 z-10 border-b border-line bg-surface pt-[env(safe-area-inset-top)] transition-shadow duration-200 motion-reduce:transition-none ${
+                    isScrolled ? 'shadow-card' : ''
+                }`}
+            >
+                <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4">
+                    <NavLink to="/" className={`flex items-center gap-2.5 rounded-lg ${FOCUS}`} aria-label="Хөрш — нүүр хуудас">
+                        <img
+                            src={isDark ? '/icons/hurshlogowhite.png' : '/icons/hurshlogo-forest.png'}
+                            alt=""
+                            width={30}
+                            height={30}
+                            className="h-[30px] w-[30px]"
+                        />
+                        <span className="text-[17px] font-semibold tracking-tight text-ink">Хөрш</span>
+                    </NavLink>
 
-                <div style={styles.headerIconsContainer}>
-                    <NavLink
-                        to="/chat"
-                        className="header-icon-btn"
-                        style={styles.headerIconButton}
-                        aria-label="Чат"
-                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = colors.border; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = colors.surfaceAlt; }}
-                    >
-                        <MessageCircle size={21} color={colors.textSub} />
-                    </NavLink>
-                    <NavLink
-                        to="/notifications"
-                        className="header-icon-btn"
-                        style={styles.headerIconButton}
-                        aria-label="Мэдэгдэл"
-                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = colors.border; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = colors.surfaceAlt; }}
-                    >
-                        <Bell size={21} color={colors.textSub} />
-                        {notificationCount > 0 && (
-                            <span style={styles.notificationBadge}>
-                                {notificationCount > 9 ? '9+' : notificationCount}
-                            </span>
-                        )}
-                    </NavLink>
-                    <NavLink
-                        to="/profile"
-                        className="header-icon-btn"
-                        style={styles.headerIconButton}
-                        aria-label="Профайл"
-                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = colors.border; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = colors.surfaceAlt; }}
-                    >
-                        <CircleUserRound size={22} color={colors.textSub} />
-                    </NavLink>
+                    <div className="flex items-center gap-1.5">
+                        <HeaderIconLink to="/chat" label="Чат" icon={MessageCircle} />
+                        <HeaderIconLink
+                            to="/notifications"
+                            label={notificationCount > 0 ? `Мэдэгдэл, ${notificationCount} уншаагүй` : 'Мэдэгдэл'}
+                            icon={Bell}
+                        >
+                            {notificationCount > 0 && (
+                                <span
+                                    aria-hidden="true"
+                                    className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-surface bg-danger-text px-1 text-[10px] font-bold leading-none text-surface tabular-nums"
+                                >
+                                    {badgeLabel}
+                                </span>
+                            )}
+                        </HeaderIconLink>
+                        <HeaderIconLink to="/profile" label="Профайл" icon={CircleUserRound} />
+                    </div>
                 </div>
             </header>
 
             {/* Main Content - with padding for header and nav */}
-            <main style={styles.main}>
-                <Outlet />
+            <main className="w-full flex-1 overflow-x-hidden px-4 pb-[calc(80px+env(safe-area-inset-bottom))] pt-[calc(64px+env(safe-area-inset-top))]">
+                <div className="mx-auto w-full max-w-3xl">
+                    <Outlet />
+                </div>
             </main>
 
             {/* Mobile Bottom Navigation */}
-            <nav style={styles.bottomNav}>
-                <div style={{ ...styles.bottomNavGrid, gridTemplateColumns: `repeat(${primaryNavItems.length}, 1fr)` }}>
+            <nav aria-label="Үндсэн цэс" className="fixed inset-x-0 bottom-0 z-10 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)]">
+                <div
+                    className="mx-auto grid h-16 max-w-3xl"
+                    style={{ gridTemplateColumns: `repeat(${primaryNavItems.length}, 1fr)` }}
+                >
                     {primaryNavItems.map((item) => {
                         const active = item.path === '#more' ? isMoreMenuOpen :
                             (item.path === '/' ? location.pathname === '/' : location.pathname.startsWith(item.path))
                         const unavailable = item.featureKeys?.every(key => !hasFeature(key))
+                        const itemClass = `relative flex flex-col items-center justify-center gap-1 transition-colors duration-150 ${FOCUS} ${
+                            unavailable ? 'text-ink-muted/40'
+                            : active ? 'text-brand-text'
+                            : 'text-ink-muted hover:text-ink'
+                        }`
+                        const content = (
+                            <>
+                                {active && <span aria-hidden="true" className="absolute top-0 h-[3px] w-6 rounded-b-full bg-brand-text" />}
+                                <item.icon size={22} strokeWidth={active ? 2.2 : 1.9} />
+                                <span className={`text-[11.5px] ${active ? 'font-semibold' : 'font-medium'}`}>{item.name}</span>
+                            </>
+                        )
+
+                        // The menu entry opens a sheet; it's a button, not a link
+                        if (item.path === '#more') {
+                            return (
+                                <button
+                                    key={item.name}
+                                    ref={moreButtonRef}
+                                    type="button"
+                                    className={itemClass}
+                                    aria-expanded={isMoreMenuOpen}
+                                    aria-controls="more-menu"
+                                    onClick={toggleMoreMenu}
+                                >
+                                    {content}
+                                </button>
+                            )
+                        }
 
                         return (
                             <NavLink
                                 key={item.name}
-                                to={item.path === '#more' ? '#' : item.path}
-                                style={{
-                                    ...styles.navItem,
-                                    ...(active ? styles.navItemActive : styles.navItemInactive),
-                                    ...(unavailable ? { color: colors.border } : {})
-                                }}
+                                to={item.path}
+                                className={itemClass}
                                 aria-disabled={unavailable || undefined}
-                                onClick={
-                                    item.path === '#more' ? toggleMoreMenu
-                                    : unavailable ? (e) => { e.preventDefault(); toast.show(FEATURE_DISABLED_MESSAGE) }
-                                    : undefined
-                                }
+                                onClick={unavailable ? (e) => { e.preventDefault(); toast.show(FEATURE_DISABLED_MESSAGE) } : undefined}
                             >
-                                <item.icon size={24} style={{ marginBottom: '4px' }} />
-                                <span style={{
-                                    ...styles.navLabel,
-                                    ...(active ? { fontWeight: 500 } : {})
-                                }}>
-                                    {item.name}
-                                </span>
-                                {active && <div style={styles.activeIndicator}></div>}
+                                {content}
                             </NavLink>
                         )
                     })}
@@ -434,9 +278,16 @@ export default function MainLayout() {
 
             {/* More Menu Popup */}
             {isMoreMenuOpen && (
-                <div style={styles.moreMenu}>
-                    <div style={styles.dragHandle}></div>
-                    <div style={styles.moreMenuGrid}>
+                <div
+                    id="more-menu"
+                    ref={moreMenuRef}
+                    role="dialog"
+                    aria-label="Бусад цэс"
+                    className="shell-sheet fixed inset-x-0 z-20 mx-auto max-w-3xl overscroll-contain rounded-t-[20px] border-t border-line bg-surface shadow-pop"
+                    style={{ bottom: 'calc(64px + env(safe-area-inset-bottom))' }}
+                >
+                    <div aria-hidden="true" className="mx-auto mb-1 mt-3 h-1 w-10 rounded-full bg-line" />
+                    <div className="grid grid-cols-3 gap-2 px-4 pb-5 pt-2">
                         {secondaryNavItems.map((item) => {
                             const active = location.pathname === item.path
 
@@ -444,19 +295,15 @@ export default function MainLayout() {
                                 <NavLink
                                     key={item.name}
                                     to={item.path}
-                                    style={{
-                                        ...styles.moreMenuItem,
-                                        ...(active ? styles.moreMenuItemActive : styles.moreMenuItemInactive)
-                                    }}
                                     onClick={() => setIsMoreMenuOpen(false)}
+                                    className={`flex flex-col items-center justify-center gap-2 rounded-card px-2 py-3.5 text-center transition-colors duration-150 ${FOCUS} ${
+                                        active ? 'bg-brand-soft text-brand-text' : 'text-ink-secondary hover:bg-surface-muted'
+                                    }`}
                                 >
-                                    <div style={{
-                                        ...styles.moreMenuIconContainer,
-                                        ...(active ? styles.moreMenuIconContainerActive : {})
-                                    }}>
-                                        <item.icon size={24} />
-                                    </div>
-                                    <span style={{ fontSize: '13px', fontWeight: active ? '500' : '400' }}>{item.name}</span>
+                                    <span className={`flex h-11 w-11 items-center justify-center rounded-control ${active ? 'bg-surface text-brand-text' : 'bg-surface-muted text-ink-secondary'}`}>
+                                        <item.icon size={22} strokeWidth={1.9} />
+                                    </span>
+                                    <span className={`text-[13px] leading-tight ${active ? 'font-semibold' : 'font-medium'}`}>{item.name}</span>
                                 </NavLink>
                             )
                         })}
@@ -467,30 +314,12 @@ export default function MainLayout() {
             {/* Backdrop for More Menu */}
             {isMoreMenuOpen && (
                 <div
-                    style={styles.backdrop}
+                    aria-hidden="true"
+                    className="shell-fade fixed inset-x-0 top-0 z-10"
+                    style={{ bottom: 'calc(64px + env(safe-area-inset-bottom))', backgroundColor: 'var(--overlay)' }}
                     onClick={() => setIsMoreMenuOpen(false)}
                 ></div>
             )}
-
-            {/* Global keyframe animations */}
-            <style>{`
-                @keyframes slide-up {
-                    from { transform: translateY(100%); }
-                    to { transform: translateY(0); }
-                }
-
-                @keyframes fade-in {
-                    from { opacity: 0; }
-                    to { opacity: 1; }
-                }
-
-                .header-icon-btn {
-                    -webkit-tap-highlight-color: transparent;
-                }
-                .header-icon-btn:active {
-                    transform: scale(0.92);
-                }
-            `}</style>
         </div>
     )
-} 
+}
