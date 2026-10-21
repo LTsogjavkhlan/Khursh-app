@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, useOutletContext } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { apiRequest } from '../api/client'
@@ -162,6 +162,41 @@ export default function Home() {
         loadData()
     }, [])
 
+    // Measure both hero layers before paint so the shared gradient lines up
+    // with no seam or flash; re-measure when they resize (rotation, font load).
+    const barRef = useRef(null)
+    const bodyRef = useRef(null)
+    const [heroSize, setHeroSize] = useState({ bar: 0, total: 0 })
+    useLayoutEffect(() => {
+        const bar = barRef.current, body = bodyRef.current
+        if (!bar || !body) return
+        const measure = () => {
+            const b = bar.offsetHeight
+            const t = b + body.offsetHeight
+            setHeroSize(prev => (prev.bar === b && prev.total === t ? prev : { bar: b, total: t }))
+        }
+        measure()
+        const ro = new ResizeObserver(measure)
+        ro.observe(bar); ro.observe(body)
+        return () => ro.disconnect()
+    }, [])
+
+    // Shadow under the bar once the sheet has slid up to meet it
+    const [sheetUnderBar, setSheetUnderBar] = useState(false)
+    useEffect(() => {
+        let frame = 0
+        const check = () => {
+            frame = 0
+            const body = bodyRef.current
+            // The sheet overlaps the hero by 24px (-mt-6), so it meets the bar 24px early
+            if (body) setSheetUnderBar(window.scrollY >= body.offsetHeight - 24)
+        }
+        const onScroll = () => { if (!frame) frame = requestAnimationFrame(check) }
+        check()
+        window.addEventListener('scroll', onScroll, { passive: true })
+        return () => { window.removeEventListener('scroll', onScroll); cancelAnimationFrame(frame) }
+    }, [])
+
     const pendingTotal = payments
         .filter(p => p.status === 'pending')
         .reduce((sum, p) => sum + p.amount, 0)
@@ -174,18 +209,24 @@ export default function Home() {
         [user?.building && `${user.building}-р байр`, user?.apartmentNumber && `${user.apartmentNumber} тоот`].filter(Boolean).join(', '),
     ].filter(Boolean).join(' · ')
 
+    // One gradient sized to the whole hero; each layer shows its own slice
+    const heroBg = (offset) => heroSize.total
+        ? { backgroundImage: HERO_BG, backgroundSize: `100% ${heroSize.total}px`, backgroundPosition: `0 ${-offset}px`, backgroundRepeat: 'no-repeat' }
+        : { background: HERO_BG }
+
     return (
         <div>
             {/* ── Hero ─────────────────────────────────────────── */}
-            {/* The hero stays put while the sheet below scrolls up over it.
-                Only on screens tall enough to show the whole hero — otherwise
-                its buttons could end up permanently below the fold. */}
-            <section
-                className="relative z-0 px-5 pb-12 pt-[calc(env(safe-area-inset-top)+20px)] text-white [@media(min-height:600px)]:sticky [@media(min-height:600px)]:top-0"
-                style={{ background: HERO_BG }}
-                aria-label="Таны мэдээлэл"
-                // A keyboard user tabbing into the hero while it's covered: bring it back into view
-                onFocus={() => { if (window.scrollY > 0) window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }) }}
+            {/* Layered hero: the top bar (avatar, greeting, icons) always stays
+                in front; the balance block below it stays put while the sheet
+                scrolls up over it. Both paint slices of one gradient so there's
+                no seam between them. */}
+            <header
+                ref={barRef}
+                className={`sticky top-0 z-20 px-5 pb-3 pt-[calc(env(safe-area-inset-top)+20px)] text-white transition-shadow duration-200 motion-reduce:transition-none ${
+                    sheetUnderBar ? 'shadow-[0_8px_18px_-8px_rgba(0,0,0,0.45)]' : ''
+                }`}
+                style={heroBg(0)}
             >
                 <div className="flex items-center gap-2">
                     <Link to="/profile" aria-label="Профайл" className={`${HERO_BTN} mr-1 h-12 w-12 text-sm font-bold`}>
@@ -220,8 +261,19 @@ export default function Home() {
                         )}
                     </Link>
                 </div>
+            </header>
 
-                {homeLine && <p className="mt-6 truncate text-sm text-white/70">{homeLine}</p>}
+            {/* Pinned only on screens tall enough to show it whole — otherwise
+                its buttons could end up permanently below the fold. */}
+            <section
+                ref={bodyRef}
+                className="relative z-0 px-5 pb-12 pt-3 text-white [@media(min-height:600px)]:sticky [@media(min-height:600px)]:top-[var(--hero-bar-h)]"
+                style={{ ...heroBg(heroSize.bar), '--hero-bar-h': `${heroSize.bar}px` }}
+                aria-label="Таны мэдээлэл"
+                // A keyboard user tabbing into the covered balance block: bring it back into view
+                onFocus={() => { if (window.scrollY > 0) window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }) }}
+            >
+                {homeLine && <p className="truncate text-sm text-white/70">{homeLine}</p>}
                 <p className="mt-3 text-xs font-medium uppercase tracking-wide text-white/60">Төлөгдөөгүй үлдэгдэл</p>
                 <p className="mt-1 text-[32px] font-semibold leading-tight tracking-tight" aria-live="polite">
                     {loading ? <span className="inline-block h-9 w-40 animate-pulse rounded-lg bg-white/15 align-middle motion-reduce:animate-none" />
