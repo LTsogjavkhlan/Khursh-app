@@ -177,10 +177,15 @@ export default function Home() {
     return (
         <div>
             {/* ── Hero ─────────────────────────────────────────── */}
+            {/* The hero stays put while the sheet below scrolls up over it.
+                Only on screens tall enough to show the whole hero — otherwise
+                its buttons could end up permanently below the fold. */}
             <section
-                className="relative px-5 pb-12 pt-[calc(env(safe-area-inset-top)+20px)] text-white"
+                className="relative z-0 px-5 pb-12 pt-[calc(env(safe-area-inset-top)+20px)] text-white [@media(min-height:600px)]:sticky [@media(min-height:600px)]:top-0"
                 style={{ background: HERO_BG }}
                 aria-label="Таны мэдээлэл"
+                // A keyboard user tabbing into the hero while it's covered: bring it back into view
+                onFocus={() => { if (window.scrollY > 0) window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }) }}
             >
                 <div className="flex items-center gap-2">
                     <Link to="/profile" aria-label="Профайл" className={`${HERO_BTN} mr-1 h-12 w-12 text-sm font-bold`}>
@@ -242,7 +247,7 @@ export default function Home() {
             </section>
 
             {/* ── Sheet ────────────────────────────────────────── */}
-            <div className="relative -mt-6 space-y-8 rounded-t-[28px] bg-surface px-4 pb-4 pt-7">
+            <div className="relative z-10 -mt-6 space-y-8 rounded-t-[28px] bg-surface px-4 pb-4 pt-7 shadow-[0_-10px_30px_-12px_rgba(0,0,0,0.25)]">
                 {/* Round shortcut menu */}
                 <nav aria-label="Түргэн цэс">
                     <ul className="grid grid-cols-4 gap-x-2 gap-y-5">

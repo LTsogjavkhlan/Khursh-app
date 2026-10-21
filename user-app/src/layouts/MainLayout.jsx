@@ -219,7 +219,9 @@ export default function MainLayout() {
             )}
 
             {/* Main Content - with padding for header and nav */}
-            <main className={`w-full flex-1 overflow-x-hidden pb-[calc(104px+env(safe-area-inset-bottom))] ${
+            {/* overflow-x-clip, not -hidden: hidden makes <main> a scroll
+                container, which breaks Home's sticky hero */}
+            <main className={`w-full flex-1 overflow-x-clip pb-[calc(104px+env(safe-area-inset-bottom))] ${
                 // Home's white sheet runs to the bottom, so the page behind it is white too
                 isHome ? 'bg-surface' : 'px-4 pt-[calc(64px+env(safe-area-inset-top))]'
             }`}>
