@@ -1,6 +1,8 @@
+import { randomUUID } from 'node:crypto'
 import { v2 as cloudinary } from 'cloudinary'
 
-// Image storage for user uploads (feedback photos), backed by Cloudinary.
+// File storage for user uploads (feedback photos, report images and PDFs),
+// backed by Cloudinary.
 // Credentials are read lazily from the environment, like the rest of config.
 
 const MAX_SIDE = 1600   // longest side after Cloudinary's incoming resize
@@ -34,11 +36,32 @@ export const sniffImageType = (buf) => {
     return null
 }
 
+// Report attachments may also be PDFs (receipts, statements)
+export const sniffFileType = (buf) => {
+    if (buf && buf.length >= 5 && buf.toString('ascii', 0, 5) === '%PDF-') return 'pdf'
+    return sniffImageType(buf)
+}
+
+// PDFs are stored as "raw" files: Cloudinary blocks PDF delivery from the
+// image pipeline on many accounts, while raw files are served as-is. The .pdf
+// suffix on the id makes browsers open it as a document.
+const uploadRaw = (buffer, { folder }) => new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+        { folder, resource_type: 'raw', public_id: `${randomUUID()}.pdf` },
+        (err, result) => {
+            if (err) return reject(err)
+            resolve({ url: result.secure_url, thumbUrl: null, publicId: result.public_id, resourceType: 'raw', bytes: result.bytes })
+        }
+    )
+    stream.end(buffer)
+})
+
 const realStore = {
     // Upload one image buffer into `folder`. HEIC is converted to JPEG so it
     // displays in every browser; everything is resized to fit MAX_SIDE.
     upload(buffer, { folder, type }) {
         configure()
+        if (type === 'pdf') return uploadRaw(buffer, { folder })
         return new Promise((resolve, reject) => {
             const stream = cloudinary.uploader.upload_stream(
                 {
@@ -56,6 +79,7 @@ const realStore = {
                             transformation: [{ width: THUMB_SIDE, height: THUMB_SIDE, crop: 'fill', gravity: 'auto', quality: 'auto', fetch_format: 'auto' }],
                         }),
                         publicId: result.public_id,
+                        resourceType: 'image',
                         width: result.width,
                         height: result.height,
                     })
@@ -64,10 +88,10 @@ const realStore = {
             stream.end(buffer)
         })
     },
-    async remove(publicIds) {
+    async remove(publicIds, resourceType = 'image') {
         if (!publicIds.length) return
         configure()
-        await cloudinary.api.delete_resources(publicIds, { resource_type: 'image' })
+        await cloudinary.api.delete_resources(publicIds, { resource_type: resourceType })
     },
 }
 
@@ -80,9 +104,9 @@ const store = () => testStore || realStore
 export const uploadImage = (buffer, opts) => store().upload(buffer, opts)
 
 // Best-effort cleanup; never throws (a failed delete only leaves an orphan)
-export const deleteImages = async (publicIds) => {
+export const deleteImages = async (publicIds, resourceType = 'image') => {
     try {
-        await store().remove(publicIds)
+        await store().remove(publicIds, resourceType)
     } catch {
         // ignore
     }

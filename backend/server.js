@@ -22,6 +22,7 @@ import feedbackRoutes from './routes/feedbackRoutes.js'
 import paymentRoutes from './routes/paymentRoutes.js'
 import notificationRoutes from './routes/notificationRoutes.js'
 import vehicleRoutes from './routes/vehicleRoutes.js'
+import reportRoutes from './routes/reportRoutes.js'
 import adminRoutes from './routes/adminRoutes.js'
 import addressRoutes from './routes/addressRoutes.js'
 import utilityRoutes from './routes/utilityRoutes.js'
@@ -92,6 +93,7 @@ app.use('/api/contacts', contactRoutes)
 app.use('/api/rules', ruleRoutes)
 app.use('/api/apartments', apartmentRoutes)
 app.use('/api/chat', chatRoutes)
+app.use('/api/reports', reportRoutes)
 
 // 404 handler
 app.use((req, res) => {

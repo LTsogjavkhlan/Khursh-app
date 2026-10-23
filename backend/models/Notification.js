@@ -5,7 +5,7 @@ const notificationSchema = new mongoose.Schema({
     message:   { type: String, required: true },
     type: {
         type: String,
-        enum: ['announcement', 'payment', 'event', 'general', 'feedback', 'maintenance'],
+        enum: ['announcement', 'payment', 'event', 'general', 'feedback', 'maintenance', 'report'],
         default: 'general'
     },
     // null = broadcast to all users; set = personal notification for one user

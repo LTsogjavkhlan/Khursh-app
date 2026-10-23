@@ -26,3 +26,29 @@ export const uploadImages = (req, res, next) => {
         next(err)
     })
 }
+
+// ── Report attachments (images and PDFs) ────────────────────────────────────
+
+export const MAX_REPORT_FILES_PER_UPLOAD = 5
+export const MAX_REPORT_FILE_BYTES = 10 * 1024 * 1024
+
+const reportParser = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: MAX_REPORT_FILE_BYTES, files: MAX_REPORT_FILES_PER_UPLOAD, fields: 5 },
+}).array('files', MAX_REPORT_FILES_PER_UPLOAD)
+
+const REPORT_MESSAGES = {
+    LIMIT_FILE_SIZE: 'Файл тус бүр 10MB-аас ихгүй байх ёстой',
+    LIMIT_FILE_COUNT: `Нэг удаад хамгийн ихдээ ${MAX_REPORT_FILES_PER_UPLOAD} файл оруулна`,
+    LIMIT_UNEXPECTED_FILE: `Нэг удаад хамгийн ихдээ ${MAX_REPORT_FILES_PER_UPLOAD} файл оруулна`,
+}
+
+export const uploadReportFiles = (req, res, next) => {
+    reportParser(req, res, (err) => {
+        if (!err) return next()
+        if (err instanceof multer.MulterError) {
+            return res.status(400).json({ message: REPORT_MESSAGES[err.code] || 'Файл хүлээн авахад алдаа гарлаа' })
+        }
+        next(err)
+    })
+}

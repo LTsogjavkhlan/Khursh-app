@@ -258,3 +258,38 @@ export const updateRuleSchema = z.object({
     items: z.array(z.string().trim().min(1).max(1000)).max(50).optional(),
     order: z.coerce.number().int().min(0).max(9999).optional(),
 })
+
+// ── Transparency reports ─────────────────────────────────────────────────────
+
+const REPORT_SECTION_KINDS = ['work', 'income', 'expense', 'finance', 'plan', 'other']
+const optionalText = (max) => z.string().trim().max(max).optional().or(z.literal(''))
+const isoDay = z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Огноо "YYYY-MM-DD" хэлбэртэй байх ёстой')
+    .refine(v => !Number.isNaN(Date.parse(v)), 'Огноо буруу байна')
+
+const reportItem = z.object({
+    label: requiredStr('Мөрийн нэрийг оруулна уу', 200),
+    amount: z.number().finite().min(0, 'Дүн сөрөг байж болохгүй').max(1e13, 'Дүн хэт их байна').nullable().optional(),
+    note: optionalText(500),
+})
+
+const reportSection = z.object({
+    kind: z.enum(REPORT_SECTION_KINDS, { error: 'Хэсгийн төрөл буруу байна' }),
+    title: optionalText(120),
+    body: optionalText(10000),
+    items: z.array(reportItem).max(100, 'Нэг хэсэгт хамгийн ихдээ 100 мөр').default([]),
+})
+
+// Full report body for create and update (the editor always sends the whole
+// report). Status is changed only through the publish/unpublish endpoints.
+export const reportSchema = z.object({
+    title: requiredStr('Тайлангийн гарчгийг оруулна уу', 200),
+    summary: optionalText(1500),
+    periodStart: isoDay.nullable().optional().or(z.literal('')),
+    periodEnd: isoDay.nullable().optional().or(z.literal('')),
+    sections: z.array(reportSection).max(20, 'Хамгийн ихдээ 20 хэсэг').default([]),
+}).refine(d => !d.periodStart || !d.periodEnd || d.periodStart <= d.periodEnd, {
+    message: 'Эхлэх огноо дуусах огнооноос өмнө байх ёстой',
+    path: ['periodEnd'],
+})
