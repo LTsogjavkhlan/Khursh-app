@@ -19,6 +19,7 @@ import {
   ChevronRight,
   Menu,
   X,
+  FileBarChart2,
 } from 'lucide-react'
 
 const FOCUS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-surface'
@@ -59,7 +60,10 @@ const HOA_NAV = (openFeedback, pendingPayments, pendingMembers) => [
   },
   {
     title: 'Санхүү',
-    items: [{ to: '/payments', label: 'Төлбөр', badge: pendingPayments, icon: icon(CreditCard) }],
+    items: [
+      { to: '/payments', label: 'Төлбөр', badge: pendingPayments, icon: icon(CreditCard) },
+      { to: '/reports', label: 'Тайлан', icon: icon(FileBarChart2) },
+    ],
   },
   {
     title: 'Оршин суугчид',

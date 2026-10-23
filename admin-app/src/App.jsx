@@ -15,6 +15,8 @@ const AdminCalendar = lazy(() => import('./pages/AdminCalendar.jsx'))
 const AdminVehicles = lazy(() => import('./pages/AdminVehicles.jsx'))
 const AdminContact = lazy(() => import('./pages/AdminContact.jsx'))
 const AdminRules = lazy(() => import('./pages/AdminRules.jsx'))
+const AdminReports = lazy(() => import('./pages/AdminReports.jsx'))
+const AdminReportEditor = lazy(() => import('./pages/AdminReportEditor.jsx'))
 const AdminProfile = lazy(() => import('./pages/AdminProfile.jsx'))
 const GroupChat = lazy(() => import('./pages/GroupChat.jsx'))
 const PlatformOrganizations = lazy(() => import('./pages/PlatformOrganizations.jsx'))
@@ -94,6 +96,9 @@ function App() {
                       <Route path="vehicles" element={<AdminVehicles />} />
                       <Route path="contact" element={<AdminContact />} />
                       <Route path="rules" element={<AdminRules />} />
+                      <Route path="reports" element={<AdminReports />} />
+                      <Route path="reports/new" element={<AdminReportEditor />} />
+                      <Route path="reports/:id" element={<AdminReportEditor />} />
                       <Route path="chat" element={<GroupChat />} />
                     </>
                   )}
