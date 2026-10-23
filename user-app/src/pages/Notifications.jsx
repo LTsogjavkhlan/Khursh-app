@@ -7,7 +7,7 @@ import Card from '../components/ui/Card'
 import EmptyState from '../components/ui/EmptyState'
 import { SkeletonBlock } from '../components/ui/Skeleton'
 import { relativeTime } from '../utils/format'
-import { CircleDollarSign, Megaphone, MessageSquare, Calendar, Wrench, KeyRound, Package, Info, Bell, ChevronRight, CheckCheck } from 'lucide-react'
+import { CircleDollarSign, Megaphone, MessageSquare, Calendar, Wrench, KeyRound, Package, Info, Bell, ChevronRight, CheckCheck, FileBarChart2 } from 'lucide-react'
 
 // Icon + tint per notification type (decorative; the title says what it is)
 const TYPES = {
@@ -18,6 +18,7 @@ const TYPES = {
     maintenance: { icon: Wrench, tint: 'bg-warning-bg text-warning-text' },
     access: { icon: KeyRound, tint: 'bg-brand-soft text-brand-text' },
     package: { icon: Package, tint: 'bg-warning-bg text-warning-text' },
+    report: { icon: FileBarChart2, tint: 'bg-brand-soft text-brand-text' },
 }
 
 export default function Notifications() {
@@ -62,6 +63,8 @@ export default function Notifications() {
         }
         if (notification.type === 'feedback') {
             navigate('/feedback', { state: { tab: 'history' } })
+        } else if (notification.type === 'report') {
+            navigate('/reports')
         }
     }
 

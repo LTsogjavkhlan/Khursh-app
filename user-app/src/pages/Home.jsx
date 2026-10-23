@@ -5,12 +5,15 @@ import { apiRequest } from '../api/client'
 import {
     DoorOpen, UserPlus, CircleDollarSign, Phone, CircleUserRound, Calendar, ShieldCheck, MessageSquare,
     Car, Bell, MessageCircle, Eye, EyeOff, Megaphone, Receipt, History, ChevronRight, Plus,
+    FileBarChart2, CheckCircle2,
 } from 'lucide-react'
 import { useToast } from '../components/Toast'
 import StatusPill from '../components/ui/StatusPill'
 import { SkeletonBlock } from '../components/ui/Skeleton'
 import { FOCUS_RING } from '../components/ui/Button'
 import { FEATURE_DISABLED_MESSAGE } from '../utils/features'
+import { periodLabel } from '../utils/reports'
+import { MoneyRows } from '../components/ReportView'
 
 // Mongolian dates are built by hand: Chrome ships without Mongolian Intl data.
 const NUM = new Intl.NumberFormat('mn-MN')
@@ -56,6 +59,69 @@ function SectionHeader({ title, to, linkLabel = 'Бүгд', linkState }) {
                 </Link>
             )}
         </div>
+    )
+}
+
+// Short preview of the latest published transparency report. The full report
+// lives on /reports; both read the same API data (totals come from the server).
+function ReportPreview({ report }) {
+    const totals = report.totals || {}
+    const hasMoney = totals.income != null || totals.expense != null
+    // Highlights: completed work first, otherwise the largest expenses
+    const sections = report.sections || []
+    const work = sections.filter(s => s.kind === 'work').flatMap(s => s.items || [])
+    const spend = sections.filter(s => s.kind === 'expense').flatMap(s => s.items || [])
+        .filter(i => typeof i.amount === 'number').sort((a, b) => b.amount - a.amount)
+    const highlights = (work.length ? work : spend).slice(0, 3)
+    const period = periodLabel(report.periodStart, report.periodEnd)
+
+    return (
+        <section aria-labelledby="home-report">
+            <SectionHeader title={<span id="home-report">Ил тод байдал</span>} to="/reports" />
+            <article className="rounded-[20px] border border-line bg-surface p-4 shadow-card">
+                <div className="flex items-start gap-3">
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand-text">
+                        <FileBarChart2 size={21} aria-hidden="true" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                        <h3 className="text-[15px] font-semibold leading-snug text-ink">{report.title}</h3>
+                        <p className="mt-0.5 text-xs text-ink-muted">
+                            {period || (report.publishedAt ? `${dayLabel(report.publishedAt)}-нд нийтэлсэн` : '')}
+                        </p>
+                    </div>
+                </div>
+
+                {report.summary && <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-ink-secondary">{report.summary}</p>}
+
+                {hasMoney && <MoneyRows totals={totals} compact className="mt-3 rounded-xl bg-canvas px-3 py-1" />}
+
+                {highlights.length > 0 && (
+                    <ul className="mt-3 space-y-1.5">
+                        {highlights.map((h, i) => (
+                            <li key={i} className="flex items-center gap-2 text-sm text-ink-secondary">
+                                {work.length
+                                    ? <CheckCircle2 size={15} className="shrink-0 text-success-text" aria-hidden="true" />
+                                    : <span aria-hidden="true" className="h-1.5 w-1.5 shrink-0 rounded-full bg-warning-text/80" />}
+                                <span className="min-w-0 flex-1 truncate">{h.label}</span>
+                                {!work.length && <span className="shrink-0 tabular-nums text-ink-muted">{money(h.amount)}</span>}
+                            </li>
+                        ))}
+                    </ul>
+                )}
+
+                <div className="mt-4 flex items-center justify-between gap-3">
+                    {report.publishedAt && period
+                        ? <span className="text-xs text-ink-muted">{dayLabel(report.publishedAt)}-нд нийтэлсэн</span>
+                        : <span />}
+                    <Link
+                        to={`/reports/${report._id}`}
+                        className={`inline-flex h-10 shrink-0 items-center gap-1 rounded-full bg-brand px-4 text-sm font-semibold text-on-brand transition-colors hover:bg-brand-hover ${FOCUS_RING}`}
+                    >
+                        Дэлгэрэнгүй үзэх <ChevronRight size={16} aria-hidden="true" />
+                    </Link>
+                </div>
+            </article>
+        </section>
     )
 }
 
@@ -105,6 +171,7 @@ export default function Home() {
     const { notificationCount = 0 } = useOutletContext() || {}
 
     const [announcements, setAnnouncements] = useState([])
+    const [latestReport, setLatestReport] = useState(null)
     const [payments, setPayments] = useState([])
     const [vehicles, setVehicles] = useState([])
     const [upcomingEvents, setUpcomingEvents] = useState([])
@@ -128,12 +195,16 @@ export default function Home() {
     useEffect(() => {
         async function loadData() {
             try {
-                const [announcementsData, paymentsData, vehiclesData, eventsData] = await Promise.allSettled([
+                const [announcementsData, paymentsData, vehiclesData, eventsData, reportsData] = await Promise.allSettled([
                     apiRequest('/api/announcements'),
                     apiRequest('/api/payments/my-payments'),
                     apiRequest('/api/vehicles'),
                     apiRequest('/api/events'),
+                    apiRequest('/api/reports?limit=1'),
                 ])
+                if (reportsData.status === 'fulfilled' && Array.isArray(reportsData.value)) {
+                    setLatestReport(reportsData.value[0] || null)
+                }
 
                 if (announcementsData.status === 'fulfilled') {
                     const list = Array.isArray(announcementsData.value) ? announcementsData.value : []
@@ -332,6 +403,9 @@ export default function Home() {
                 ) : announcements.length > 0 && (
                     <AnnouncementCarousel items={announcements} />
                 )}
+
+                {/* Latest transparency report — hidden until one is published */}
+                {!loading && latestReport && <ReportPreview report={latestReport} />}
 
                 {/* Recent payments */}
                 <section aria-labelledby="home-payments">

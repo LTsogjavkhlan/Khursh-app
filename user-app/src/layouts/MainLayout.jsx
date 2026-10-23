@@ -13,6 +13,7 @@ import {
     MessageSquare,
     MessageCircle,
     Phone,
+    FileBarChart2,
 } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext.jsx'
 import { useToast } from '../components/Toast'
@@ -93,6 +94,11 @@ export default function MainLayout() {
             name: 'Зарлал',
             icon: Bell,
             path: '/announcements'
+        },
+        {
+            name: 'Тайлан',
+            icon: FileBarChart2,
+            path: '/reports'
         },
         {
             name: 'Дүрэм',

@@ -18,6 +18,7 @@ const Rules = lazy(() => import('./pages/Rules'))
 const Feedback = lazy(() => import('./pages/Feedback'))
 const Announcements = lazy(() => import('./pages/Announcements'))
 const GroupChat = lazy(() => import('./pages/GroupChat'))
+const Reports = lazy(() => import('./pages/Reports'))
 
 function LoadingFallback() {
   return (
@@ -63,6 +64,8 @@ function App() {
                   <Route path="electricity" element={<Navigate to="/payments" replace />} />
                   <Route path="announcements" element={<Announcements />} />
                   <Route path="chat" element={<GroupChat />} />
+                  <Route path="reports" element={<Reports />} />
+                  <Route path="reports/:id" element={<Reports />} />
                 </Route>
 
                 <Route path="*" element={<Navigate to="/" replace />} />
