@@ -1,0 +1,37 @@
+# Render Blueprint: the backend API as code.
+# Render reads this file when you create a Blueprint from the GitHub repo.
+# Secrets marked `sync: false` are typed into the Render dashboard once and
+# never stored in git.
+services:
+  - type: web
+    name: khursh-backend
+    runtime: node
+    region: singapore # closest Render region to Mongolia
+    plan: free
+    rootDir: backend
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    # A deploy only goes live once the API answers and MongoDB is connected
+    healthCheckPath: /api/ready
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Render generates a long random value; separate from your local secret
+      - key: JWT_SECRET
+        generateValue: true
+      - key: MONGO_URI
+        sync: false
+      # Allowed browser origins. https://localhost is the Android app.
+      - key: CLIENT_URL
+        sync: false
+      - key: EMAIL_USER
+        sync: false
+      - key: EMAIL_PASS
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
